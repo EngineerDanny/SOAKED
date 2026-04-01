@@ -45,13 +45,16 @@ If the model trained on all years performs better, is this improvement due to co
 This distinction matters practically because if the gain comes solely from data volume, then prioritizing data collection from underrepresented years would be beneficial. 
 Conversely, if real distributional shifts exist between years, we might need distributional robustness techniques.
 
-The SOAK framework \citep{hocking2026} addresses part of this challenge by systematically comparing models trained on same, other, and all subset configurations. However, SOAK leaves an important technical problem unresolved about subsets that differ substantially in size, the framework does not cleanly separate subset effects (distributional differences) from sample size effects (performance gains due to more training data).
+The SOAK framework \citep{hocking2026} addresses part of this challenge by systematically comparing models trained on same, other, and all subset configurations.
+However, SOAK leaves an important technical problem unresolved about subsets that differ substantially in size.
+The framework does not cleanly separate subset effects (distributional differences) from sample size effects (performance gains due to more training data).
 
 We propose SOAKED (\textbf{S}ame/\textbf{O}ther/\textbf{A}ll \textbf{K}-fold cross-validation \textbf{E}xtension: \textbf{D}ownsampling), which extends SOAK by incorporating random downsampling to equalize training set sizes across same, other, and all configurations. 
 By holding training set cardinality constant across these three scenarios, SOAKED decouples two distinct mechanisms driving model performance: (1) the subset effect, reflecting genuine differences in learnable patterns between subsets, and (2) the sample size effect, reflecting the well-documented phenomenon that model performance improves as training set size increases. 
 By isolating the subset effect from the sample size effect, we can confidently identify fundamental data heterogeneity rather than artifacts of imbalanced data collection.
 
-We demonstrate SOAKED across a diverse collection of datasets: simulated regression problems with known distributional structure, benchmark classification datasets (STL10, waveform), epidemiological survey data (NSCH autism), microbial biogeochemistry data (qSIP), climate data (carbon emissions), and economic data (income prediction). Our empirical findings reveal substantial heterogeneity: in some datasets, downsampling eliminates observed performance gaps, confirming that subset-size imbalance was the primary driver; in others, performance differences persist despite equal training set sizes, indicating genuine subset effects that warrant special modeling attention.
+We demonstrate SOAKED across a diverse collection of datasets: simulated regression problems with known distributional structure, benchmark classification datasets (STL10, waveform), epidemiological survey data (NSCH autism), microbial biogeochemistry data (qSIP), climate data (carbon emissions), and economic data (income prediction).
+Our empirical findings reveal substantial heterogeneity: in some datasets, downsampling eliminates observed performance gaps, confirming that subset-size imbalance was the primary driver; in others, performance differences persist despite equal training set sizes, indicating genuine subset effects that warrant special modeling attention.
 
 
 
@@ -88,7 +91,7 @@ We demonstrate SOAKED across a diverse collection of datasets: simulated regress
 The mlr3spatiotempcv R package provides an interface to a variety of different cross-validation methods, all of which require data spatial coordinates \citep{schratz2024}.
 It discusses an example involving crop classification from satellite data, with 100 fields (each containing 20 grid cells) spread over several geographical regions.
 It is desirable to hold out data at the level of fields, not grid cells (so field would be assigned column role group in mlr3).
-SOAK can be used in this context, by assigning subset role to a categorical column representing a geographical region ID, and by assigning group role to a column with the field ID.
+SOAK can be used here by assigning subset role to a categorical column representing a geographical region ID, and by assigning group role to a column with the field ID.
 In this context, \citet{brenning2005} refers to SOAK subsets as ``domains,'' so the SOAK Other model is ``extra-domain prediction'' whereas the Same model is ``intra-domain prediction.''
 In mlr3spatiotempcv the term ``block'' is used for a contiguous spatial area, typically used as column role group (data in a group/block are not split in CV).
 The blockCV R package provides several algorithms (blocking, clustering, etc.) for creating fold IDs based on spatial coordinates \citep{valavi2019}, when the data do not already have pre-defined group/block IDs like field in the satellite data example.
@@ -133,14 +136,32 @@ As a result, incorporating additional samples from the \textit{other} subset can
 \section{Results}
 
 \subsection{Simulated regression data sets}
-TODO Toby explain setup and results.
+We generated synthetic regression data from a sinusoidal mean function with noise variance that depends on the subset.
+For each observation in subset $s$, let
+\[
+z_i \sim \mathrm{Unif}(-3\pi,3\pi), \qquad
+x_i = \frac{z_i+3\pi}{6\pi}, \qquad
+y_i = \sin(z_i) + \varepsilon_i,
+\]
+with $\varepsilon_i \sim \mathcal{N}(0,\sigma_s^2)$.
+We then applied SOAKED with a regression tree learner (\texttt{rpart}) and report root mean squared error (RMSE) over 10-fold cross-validation.
+
+Figure~\ref{fig:sim-iid} corresponds to an i.i.d.\ setting in which both subsets are sampled from the same distribution, with $\sigma_s=0.1$ for each subset, but the subset sizes differ ($n_{\mathrm{large}}=80$, $n_{\mathrm{small}}=40$).
+In the full-data panel, the All model has the lowest RMSE because it uses the largest training set.
+After downsampling all training configurations to the smallest feasible size, the performance gaps shrink substantially and the three training choices become much more similar.
+This is the expected SOAKED pattern when the apparent advantage of one training configuration is primarily driven by sample size.
+
+Figure~\ref{fig:sim-different} uses the same mean function but introduces a subset effect through different noise levels and different subset sizes: the easy subset has $(n_{\mathrm{easy}},\sigma_{\mathrm{easy}})=(400,0.1)$ and the hard subset has $(n_{\mathrm{hard}},\sigma_{\mathrm{hard}})=(200,1.7)$.
+When predicting on the easy subset, Same remains best and Other remains worst even after downsampling.
+When predicting on the hard subset, the ordering reverses: Other is best, All is intermediate, and Same is worst in both the full-size and downsampled panels.
+Because these qualitative differences persist after matching training sample sizes, SOAKED correctly identifies a genuine subset effect rather than a pure sample-size effect.
 
 \begin{figure}
     \centering
 \includegraphics[width=0.8\textwidth]{cv-subsets-small-large-noise-different-easy.png}
 \includegraphics[width=0.8\textwidth]{cv-subsets-small-large-noise-different-hard.png}
 % https://github.com/tdhock/2024-08-ift603-712/blob/main/cv-subsets-small-large-noise.R
-    \caption{Results of using SOAKED on simulated data with two subsets with a different (but consistent) pattern, and with different numbers of samples.}
+    \caption{Results of using SOAKED on simulated data with a shared sinusoidal mean function, noise levels that differ by subset, and different subset sizes.}
     \label{fig:sim-different}
 \end{figure}
 
@@ -149,12 +170,27 @@ TODO Toby explain setup and results.
 \includegraphics[width=0.8\textwidth]{cv-subsets-small-large-noise-iid_easy-large.png}
 \includegraphics[width=0.8\textwidth]{cv-subsets-small-large-noise-iid_easy-small.png}
 % https://github.com/tdhock/2024-08-ift603-712/blob/main/cv-subsets-small-large-noise.R
-    \caption{Results of using SOAKED on simulated data with two subsets that are i.i.d. but with different numbers of samples.}
+    \caption{Results of using SOAKED on simulated data with two i.i.d.\ subsets that differ only in sample size.}
     \label{fig:sim-iid}
 \end{figure}
 
 \subsection{Benchmark classification data sets}
-TODO Toby explain examples from SOAK paper.
+For the benchmark and survey examples, the linked scripts evaluate \texttt{classif.cv\_glmnet} and summarize the results in two-panel plots: one using the full available training sets and one after downsampling all train configurations to the smallest feasible size.
+The NSCH plots use test-set AUC, while the STL10 and waveform plots report percent prediction error, so lower values are better for the latter two data sets.
+
+The NSCH autism results in Figure~\ref{fig:NSCH_autism} are consistent with a sample-size explanation.
+For test subset 2019, the full-data panel favors All over Other over Same, but after downsampling the three AUC values collapse to nearly the same level.
+For test subset 2020, the full-data panel again favors All, with Same next and Other worst, while the downsampled panel substantially narrows those gaps and leaves only a small residual advantage for Same.
+In both years, SOAKED shows that most of the full-data gain from using All is attributable to larger training sets.
+
+The STL10 results are mixed.
+In Figure~\ref{fig:STL10}, prediction on the pre-defined test split clearly benefits from larger training sets: All has the lowest error with the full data, and much of that advantage shrinks after downsampling.
+Prediction on the pre-defined training split is less purely sample-size driven: Same remains the worst option even after downsampling, while Other and All stay better than Same.
+This suggests that the relationship between the two STL10 subsets is not fully captured by training-set cardinality alone.
+
+The waveform results in Figure~\ref{fig:waveform} show a similar contrast.
+When predicting on the pre-defined test subset, All is clearly best with the full training data, but the downsampled panel brings All, Same, and Other much closer together, again indicating an important sample-size component.
+When predicting on the pre-defined training subset, however, Same remains substantially worse than the alternatives even after downsampling, so the remaining gap is more consistent with a true subset effect.
 
 
 \begin{figure}
@@ -186,10 +222,10 @@ TODO Toby explain examples from SOAK paper.
 
 
 \subsection{qSIP regression data sets}
-TODO Dan and Jeff explain context and results.
+TODO Dan and Jeff explain the data and results.
 
 \subsection{Carbon emissions regression data sets}
-TODO Bilal explain context.
+TODO Bilal explain the data.
 
 \subsection{Regression data sets with gender subsets}
 % https://raw.githubusercontent.com/lamtung16/soak_regression/refs/heads/main/results/WorkersCompensation/Gender.csv
@@ -199,6 +235,14 @@ The primary prediction target is the UltimateIncurredClaimCost, representing the
 For the purposes of evaluating model performance across demographic groups (SOAK split), the Gender attribute is utilized. 
 The dataset exhibits a notable imbalance within this subset, containing 77,020 male instances and 22,980 female instances. 
 This data was provided by Colin Priest (\href{https://github.com/colinpriest}{GitHub}) and, while related, is not the same as the one on \href{https://www.kaggle.com/c/actuarial-loss-estimation}{Kaggle}.
+
+The linked results file reports performance for featureless, linear, and tree models across folds and random seeds.
+Focusing on the tree model, the female test subset shows only a small advantage for All in the original unequal-size setting (mean RMSE 0.8385 for All versus 0.8411 for Same and 0.8416 for Other), but after downsampling to a common training size Same becomes best (0.8349 versus 0.8454 for All and 0.8483 for Other).
+This change in ordering is consistent with SOAKED's goal: once the training-size imbalance is removed, the female subset appears easier to predict from female training data than from pooled or opposite-subset data.
+
+For the male test subset, the unequal-size results already show that Same and All perform nearly identically and both outperform Other (mean RMSE 0.7369 for Same, 0.7364 for All, and 0.7477 for Other).
+After downsampling, Same and All remain almost indistinguishable (0.7414 versus 0.7417).
+Taken together, these results suggest that the main contrast for the male subset is between training on male data versus training on female-only data, while pooling with the smaller female subset does not materially improve over Same.
 
 \subsection{Summary of results across all data sets}
 \begin{table}[]
