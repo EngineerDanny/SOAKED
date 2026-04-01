@@ -1,1 +1,16 @@
 .DS_Store
+
+# LaTeX build artifacts
+*.aux
+*.bbl
+*.blg
+*.fdb_latexmk
+*.fls
+*.log
+*.out
+*.pdf
+*.synctex.gz
+
+# Downloaded template bundle
+Formatting_Instructions_For_NeurIPS_2026.zip
+*data

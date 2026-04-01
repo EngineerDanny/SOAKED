@@ -1,13 +1,23 @@
 \documentclass{article}
-\usepackage{fullpage}
-\usepackage{graphicx} % Required for inserting images
-\usepackage{natbib}
+
+% NeurIPS 2026 Evaluations & Datasets track submission format.
+\PassOptionsToPackage{numbers,compress}{natbib}
+\usepackage[eandd]{neurips_2026}
+
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{graphicx}
 \usepackage{hyperref}
+\usepackage{url}
+\usepackage{booktabs}
+\usepackage{amsfonts}
+\usepackage{nicefrac}
+\usepackage{microtype}
+\usepackage{xcolor}
 \title{Cross-validation with subsets and downsampling for optimizing training in machine learning}
 \author{Toby Hocking, 
 Daniel Agyapong, Tung Lam Nguyen, David Folch, Bruce Hungate, Jane Marks, Jeffrey Propster, Bilal Aslam, Kevin Gurney, Olivia Lindly
 }
-\date{February 2026}
 
 \begin{document}
 
@@ -102,7 +112,6 @@ These data combine Average Annual Daily Traffic (AADT) from the USA Highway Perf
     \centering
     \includegraphics[width=0.8\linewidth]{drawing-SOAKED-generic.png}
     % https://github.com/tdhock/cv-same-other-paper/blob/main/slides/drawing-SOAKED-generic.svg
-    \vskip -1cm
     \caption{
     SOAKED algorithm for test fold=3 and test subset=B in data with two subsets of different sizes: A has three rows and B has four rows.
     After excluding data based on fold and subset, random downsampling is used for Same and All models, to obtain train sets of size equal to the smallest train set (Other, 2 rows).
