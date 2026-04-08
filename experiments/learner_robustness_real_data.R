@@ -176,36 +176,6 @@ make_learner_spec <- function(task_type, learner_name) {
   stop(sprintf("Unsupported learner '%s' for task type '%s'.", learner_name, task_type))
 }
 
-classify_conclusion <- function(metric_dt, minimize, sample_ratio_cutoff, persist_ratio_cutoff) {
-  full_dt <- metric_dt[sample_size == "full"]
-  smallest_dt <- metric_dt[sample_size == "smallest"]
-  if (nrow(full_dt) != 3L || nrow(smallest_dt) != 3L) {
-    return("incomplete")
-  }
-  if (minimize) {
-    full_dt[, score := -metric_mean]
-    smallest_dt[, score := -metric_mean]
-  } else {
-    full_dt[, score := metric_mean]
-    smallest_dt[, score := metric_mean]
-  }
-  full_gap <- max(full_dt$score) - min(full_dt$score)
-  smallest_gap <- max(smallest_dt$score) - min(smallest_dt$score)
-  if (full_gap <= .Machine$double.eps) {
-    return("unclear")
-  }
-  winner_full <- full_dt[which.max(score)]$train_subsets[[1L]]
-  winner_smallest <- smallest_dt[which.max(score)]$train_subsets[[1L]]
-  gap_ratio <- smallest_gap / full_gap
-  if (winner_full == "all" && gap_ratio <= sample_ratio_cutoff) {
-    return("sample_size")
-  }
-  if (winner_smallest == winner_full && gap_ratio >= persist_ratio_cutoff) {
-    return("subset")
-  }
-  "combined"
-}
-
 dataset_filter <- arg_list[["datasets"]]
 if (is.null(dataset_filter)) {
   dataset_filter <- "traffic_aadt"
@@ -221,8 +191,6 @@ if (is.null(learner_filter)) {
 folds <- parse_int_arg("folds", 5L)
 seeds <- parse_int_arg("seeds", 1L)
 max_rows_largest_subset <- parse_int_arg("max-rows-largest-subset", 5000L)
-sample_ratio_cutoff <- parse_double_arg("sample-ratio-cutoff", 0.33)
-persist_ratio_cutoff <- parse_double_arg("persist-ratio-cutoff", 0.67)
 raw_output <- arg_list[["output-raw"]]
 if (is.null(raw_output)) {
   raw_output <- file.path(repo_root, "results", "learner_robustness_runs.csv")
@@ -230,10 +198,6 @@ if (is.null(raw_output)) {
 summary_output <- arg_list[["output-summary"]]
 if (is.null(summary_output)) {
   summary_output <- file.path(repo_root, "results", "learner_robustness_summary.csv")
-}
-conclusion_output <- arg_list[["output-conclusions"]]
-if (is.null(conclusion_output)) {
-  conclusion_output <- file.path(repo_root, "results", "learner_robustness_conclusions.csv")
 }
 
 dir.create(dirname(raw_output), recursive = TRUE, showWarnings = FALSE)
@@ -247,7 +211,6 @@ for (dataset_name in names(dataset_specs)) {
   message(sprintf("Running dataset: %s", dataset_spec$dataset_label))
   task <- dataset_spec$task$clone(deep = TRUE)
   metric <- msr(dataset_spec$metric_id)
-  minimize <- metric$minimize
 
   resampling <- ResamplingSameOtherSizesCV$new()
   resampling$param_set$values$folds <- folds
@@ -320,23 +283,5 @@ summary_dt <- raw_dt[, .(
   sample_size
 )]
 
-conclusion_dt <- summary_dt[, {
-  metric_view <- .SD[, .(sample_size, train_subsets, metric_mean)]
-  conclusion <- classify_conclusion(
-    metric_view,
-    minimize = unique(metric_id) == "regr.rmse" || unique(metric_id) == "classif.ce",
-    sample_ratio_cutoff = sample_ratio_cutoff,
-    persist_ratio_cutoff = persist_ratio_cutoff
-  )
-  full_runtime <- sum(train_seconds_total[sample_size == "full"])
-  smallest_runtime <- sum(train_seconds_total[sample_size == "smallest"])
-  list(
-    conclusion = conclusion,
-    full_runtime_seconds = full_runtime,
-    smallest_runtime_seconds = smallest_runtime
-  )
-}, by = .(dataset_id, dataset_label, learner, test_subset, metric_id, metric_label)]
-
 fwrite(raw_dt, raw_output)
 fwrite(summary_dt, summary_output)
-fwrite(conclusion_dt, conclusion_output)
