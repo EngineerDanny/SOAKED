@@ -39,49 +39,6 @@ sample_preserve_subset_ratio <- function(dt, subset_col, max_rows_largest_subset
   dt[, .SD[sample.int(.N, max(1L, floor(.N * sample_fraction)))], by = subset_col]
 }
 
-make_traffic_task <- function(max_rows_largest_subset) {
-  dt <- fread(file.path(repo_root, "data", "traffic.csv"))
-  dt <- dt[city_key %in% c("Phoenix", "Baltimore")]
-  dt <- sample_preserve_subset_ratio(dt, "city_key", max_rows_largest_subset)
-  dt[, subset_id := factor(city_key)]
-  task_dt <- dt[, .(
-    AADT,
-    NTL,
-    POP,
-    ROAD_DENS,
-    S2_R,
-    S2_G,
-    S2_B,
-    S2_NIR,
-    subset_id
-  )]
-  task <- TaskRegr$new("traffic_aadt", task_dt, target = "AADT")
-  task$set_col_roles("subset_id", c("subset"))
-  list(
-    dataset_id = "traffic_aadt",
-    dataset_label = "Traffic AADT",
-    subset_col = "city_key",
-    target = "AADT",
-    metric_id = "regr.rmse",
-    metric_label = "RMSE",
-    task = task
-  )
-}
-
-make_dataset_specs <- function(dataset_ids, max_rows_largest_subset) {
-  loader_map <- list(
-    traffic_aadt = make_traffic_task
-  )
-  if (!all(dataset_ids %in% names(loader_map))) {
-    unknown_ids <- setdiff(dataset_ids, names(loader_map))
-    stop("Unknown dataset ids: ", paste(unknown_ids, collapse = ", "))
-  }
-  setNames(
-    lapply(dataset_ids, function(dataset_id) loader_map[[dataset_id]](max_rows_largest_subset)),
-    dataset_ids
-  )
-}
-
 make_learner_spec <- function(learner_name) {
   if (learner_name == "rpart") {
     return(list(label = "rpart", learner = lrn("regr.rpart")))
@@ -120,12 +77,6 @@ make_learner_spec <- function(learner_name) {
   stop(sprintf("Unsupported regression learner '%s'.", learner_name))
 }
 
-dataset_filter <- arg_list[["datasets"]]
-if (is.null(dataset_filter)) {
-  dataset_filter <- "traffic_aadt"
-} else {
-  dataset_filter <- strsplit(dataset_filter, ",", fixed = TRUE)[[1L]]
-}
 learner_filter <- arg_list[["learners"]]
 if (is.null(learner_filter)) {
   learner_filter <- c("rpart", "glmnet", "random_forest", "gradient_boosting", "dnn")
@@ -146,62 +97,78 @@ if (is.null(summary_output)) {
 
 dir.create(dirname(raw_output), recursive = TRUE, showWarnings = FALSE)
 
-dataset_specs <- make_dataset_specs(dataset_filter, max_rows_largest_subset)
+traffic_dt <- fread(file.path(repo_root, "data", "traffic.csv"))
+traffic_dt <- traffic_dt[city_key %in% c("Phoenix", "Baltimore")]
+traffic_dt <- sample_preserve_subset_ratio(traffic_dt, "city_key", max_rows_largest_subset)
+traffic_dt[, subset_id := factor(city_key)]
+
+task <- TaskRegr$new(
+  "traffic_aadt",
+  traffic_dt[, .(
+    AADT,
+    NTL,
+    POP,
+    ROAD_DENS,
+    S2_R,
+    S2_G,
+    S2_B,
+    S2_NIR,
+    subset_id
+  )],
+  target = "AADT"
+)
+task$set_col_roles("subset_id", c("subset"))
+metric <- msr("regr.rmse")
 
 all_raw <- list()
 raw_i <- 1L
-for (dataset_name in names(dataset_specs)) {
-  dataset_spec <- dataset_specs[[dataset_name]]
-  message(sprintf("Running dataset: %s", dataset_spec$dataset_label))
-  task <- dataset_spec$task$clone(deep = TRUE)
-  metric <- msr(dataset_spec$metric_id)
+message("Running dataset: Traffic AADT")
 
-  resampling <- ResamplingSameOtherSizesCV$new()
-  resampling$param_set$values$folds <- folds
-  resampling$param_set$values$seeds <- seeds
-  resampling$param_set$values$sizes <- 0L
-  resampling$instantiate(task)
+resampling <- ResamplingSameOtherSizesCV$new()
+resampling$param_set$values$folds <- folds
+resampling$param_set$values$seeds <- seeds
+resampling$param_set$values$sizes <- 0L
+resampling$instantiate(task)
 
-  iteration_dt <- copy(resampling$instance$iteration.dt)
-  smallest_dt <- iteration_dt[, .(smallest_n = min(n.train.groups)), by = test.subset]
-  full_dt <- iteration_dt[, .(full_n = max(n.train.groups)), by = .(test.subset, train.subsets)]
-  iteration_dt <- merge(iteration_dt, smallest_dt, by = "test.subset")
-  iteration_dt <- merge(iteration_dt, full_dt, by = c("test.subset", "train.subsets"))
-  full_rows <- copy(iteration_dt[n.train.groups == full_n])
-  full_rows[, sample_size := "full"]
-  smallest_rows <- copy(iteration_dt[n.train.groups == smallest_n])
-  smallest_rows[, sample_size := "smallest"]
-  iteration_dt <- rbindlist(list(full_rows, smallest_rows), use.names = TRUE)
+iteration_dt <- copy(resampling$instance$iteration.dt)
+smallest_dt <- iteration_dt[, .(smallest_n = min(n.train.groups)), by = test.subset]
+full_dt <- iteration_dt[, .(full_n = max(n.train.groups)), by = .(test.subset, train.subsets)]
+iteration_dt <- merge(iteration_dt, smallest_dt, by = "test.subset")
+iteration_dt <- merge(iteration_dt, full_dt, by = c("test.subset", "train.subsets"))
+full_rows <- copy(iteration_dt[n.train.groups == full_n])
+full_rows[, sample_size := "full"]
+smallest_rows <- copy(iteration_dt[n.train.groups == smallest_n])
+smallest_rows[, sample_size := "smallest"]
+iteration_dt <- rbindlist(list(full_rows, smallest_rows), use.names = TRUE)
 
-  for (learner_name in learner_filter) {
-    learner_spec <- make_learner_spec(learner_name)
-    message(sprintf("  learner: %s", learner_spec$label))
-    for (iter_i in seq_len(nrow(iteration_dt))) {
-      iter_row <- iteration_dt[iter_i]
-      learner <- learner_spec$learner$clone(deep = TRUE)
-      train_seconds <- system.time(
-        learner$train(task, row_ids = iter_row$train[[1L]])
-      )[["elapsed"]]
-      prediction <- learner$predict(task, row_ids = iter_row$test[[1L]])
-      metric_value <- prediction$score(metric)
-      all_raw[[raw_i]] <- data.table(
-        dataset_id = dataset_spec$dataset_id,
-        dataset_label = dataset_spec$dataset_label,
-        metric_id = dataset_spec$metric_id,
-        metric_label = dataset_spec$metric_label,
-        learner = learner_spec$label,
-        test_subset = as.character(iter_row$test.subset),
-        train_subsets = iter_row$train.subsets,
-        sample_size = iter_row$sample_size,
-        n_train_groups = iter_row$n.train.groups,
-        fold = iter_row$test.fold,
-        seed = iter_row$seed,
-        iteration = iter_row$iteration,
-        metric_value = metric_value,
-        train_seconds = train_seconds
-      )
-      raw_i <- raw_i + 1L
-    }
+for (learner_name in learner_filter) {
+  learner_spec <- make_learner_spec(learner_name)
+  message(sprintf("  learner: %s", learner_spec$label))
+  for (iter_i in seq_len(nrow(iteration_dt))) {
+    iter_row <- iteration_dt[iter_i]
+    learner <- learner_spec$learner$clone(deep = TRUE)
+    train_seconds <- system.time(
+      learner$train(task, row_ids = iter_row$train[[1L]])
+    )[["elapsed"]]
+    prediction <- learner$predict(task, row_ids = iter_row$test[[1L]])
+    metric_value <- prediction$score(metric)
+    all_raw[[raw_i]] <- data.table(
+      dataset_id = "traffic_aadt",
+      dataset_label = "Traffic AADT",
+      metric_id = "regr.rmse",
+      metric_label = "RMSE",
+      learner = learner_spec$label,
+      test_subset = as.character(iter_row$test.subset),
+      train_subsets = iter_row$train.subsets,
+      sample_size = iter_row$sample_size,
+      n_train_groups = iter_row$n.train.groups,
+      fold = iter_row$test.fold,
+      seed = iter_row$seed,
+      iteration = iter_row$iteration,
+      metric_value = metric_value,
+      train_seconds = train_seconds
+    )
+    raw_i <- raw_i + 1L
   }
 }
 
