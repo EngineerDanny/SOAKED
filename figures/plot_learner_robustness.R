@@ -10,6 +10,7 @@ output_png <- file.path(repo_root, "results", "learner_robustness_plot.png")
 paper_png <- file.path(repo_root, "paper", "figures", "learner_robustness_plot.png")
 
 plot_dt <- fread(input_csv)
+plot_dt <- plot_dt[train_subsets %in% c("same", "other")]
 
 learner_labels <- c(
   rpart = "rpart",
@@ -19,7 +20,7 @@ learner_labels <- c(
   dnn = "DNN"
 )
 plot_dt[, learner := factor(learner, levels = names(learner_labels), labels = unname(learner_labels))]
-plot_dt[, train_subsets := factor(train_subsets, levels = c("same", "other", "all"))]
+plot_dt[, train_subsets := factor(train_subsets, levels = c("same", "other"))]
 plot_dt[, sample_size := factor(
   sample_size,
   levels = c("full", "smallest"),
@@ -36,7 +37,7 @@ time_dt <- dcast(
   learner + test_subset + sample_size ~ train_subsets,
   value.var = "train_seconds_mean"
 )
-time_dt[, time_label := sprintf("time: %.02f / %.02f / %.02f s", same, other, all)]
+time_dt[, time_label := sprintf("time: %.02f / %.02f s", same, other)]
 
 x_min <- min(plot_dt$metric_mean - plot_dt$metric_se)
 x_max <- max(plot_dt$metric_mean + plot_dt$metric_se)
@@ -52,7 +53,7 @@ plot_dt <- merge(
 )
 label_dt <- unique(plot_dt[, .(learner, test_subset, sample_size, time_label)])
 
-subset_colors <- c(same = "red", other = "blue", all = "green")
+subset_colors <- c(same = "red", other = "blue")
 dodge <- position_dodge(width = 0.6)
 
 figure <- ggplot(
@@ -79,7 +80,7 @@ figure <- ggplot(
   ) +
   facet_grid(test_subset ~ sample_size) +
   coord_flip() +
-  scale_color_manual(values = subset_colors, breaks = c("same", "other", "all")) +
+  scale_color_manual(values = subset_colors, breaks = c("same", "other")) +
   scale_y_continuous(
     limits = c(x_min, x_upper),
     expand = expansion(mult = c(0.02, 0.02))
@@ -88,7 +89,7 @@ figure <- ggplot(
     x = NULL,
     y = unique(plot_dt$metric_label),
     color = NULL,
-    caption = "Gray labels show mean training seconds for same / other / all."
+    caption = "Gray labels show mean training seconds for same / other."
   ) +
   theme_bw() +
   theme(
