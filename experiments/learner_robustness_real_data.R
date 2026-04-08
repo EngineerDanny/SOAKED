@@ -3,6 +3,8 @@ library(mlr3)
 library(mlr3learners)
 library(mlr3extralearners)
 library(mlr3resampling)
+library(mlr3tuning)
+library(paradox)
 
 set.seed(1)
 
@@ -24,7 +26,21 @@ make_learner_spec <- function(learner_name) {
   switch(
     learner_name,
     featureless = list(label = "featureless", learner = lrn("regr.featureless")),
-    rpart = list(label = "rpart", learner = lrn("regr.rpart")),
+    rpart = {
+      learner <- lrn("regr.rpart")
+      learner <- auto_tuner(
+        tuner = tnr("grid_search", resolution = 3L),
+        learner = learner,
+        resampling = rsmp("cv", folds = 3L),
+        measure = msr("regr.rmse"),
+        terminator = trm("evals", n_evals = 9L),
+        search_space = ps(
+          cp = p_dbl(lower = 1e-4, upper = 1e-2, logscale = TRUE),
+          maxdepth = p_int(lower = 3L, upper = 9L)
+        )
+      )
+      list(label = "rpart", learner = learner)
+    },
     glmnet = {
       learner <- lrn("regr.cv_glmnet")
       learner$param_set$values <- list(nfolds = 5L)
