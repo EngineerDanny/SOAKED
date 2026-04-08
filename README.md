@@ -6,7 +6,7 @@ This repository contains the SOAKED NeurIPS E&D paper, the experiment scripts us
 
 - `paper/`: NeurIPS manuscript source, bibliography, template files, TeX rules, and stable paper figures.
 - `R/`: reusable R helpers for SOAKED workflows. This is currently a placeholder for shared code.
-- `experiments/simulation/`: simulation runner used to generate the combined simulation-panel data.
+- `experiments/`: experiment runners, including the simulation workflow and qSIP analyses.
 - `experiments/qsip/`: qSIP analysis scripts and variants.
 - `figures/`: plotting scripts that read saved results and render final figures.
 - `results/`: generated CSV summaries and rendered outputs.
@@ -16,7 +16,7 @@ This repository contains the SOAKED NeurIPS E&D paper, the experiment scripts us
 
 - Paper source: `paper/main.tex`
 - Paper figures: `paper/figures/`
-- Simulation runner: `experiments/simulation/generate_figures.R`
+- Simulation runner: `experiments/generate_figures.R`
 - Simulation plotter: `figures/plot_simulation_panels.R`
 - Simulation outputs:
   - `results/simulation_panel_data.csv`
@@ -27,7 +27,7 @@ This repository contains the SOAKED NeurIPS E&D paper, the experiment scripts us
 Generate the simulation summaries:
 
 ```bash
-Rscript experiments/simulation/generate_figures.R
+Rscript experiments/generate_figures.R
 ```
 
 Render the combined simulation figure:
