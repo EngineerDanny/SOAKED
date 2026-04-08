@@ -109,15 +109,6 @@ resampling$param_set$values$sizes <- 0L
 resampling$instantiate(task)
 
 iteration_dt <- copy(resampling$instance$iteration.dt)
-smallest_dt <- iteration_dt[, .(smallest_n = min(n.train.groups)), by = test.subset]
-full_dt <- iteration_dt[, .(full_n = max(n.train.groups)), by = .(test.subset, train.subsets)]
-iteration_dt <- merge(iteration_dt, smallest_dt, by = "test.subset")
-iteration_dt <- merge(iteration_dt, full_dt, by = c("test.subset", "train.subsets"))
-full_rows <- copy(iteration_dt[n.train.groups == full_n])
-full_rows[, sample_size := "full"]
-smallest_rows <- copy(iteration_dt[n.train.groups == smallest_n])
-smallest_rows[, sample_size := "smallest"]
-iteration_dt <- rbindlist(list(full_rows, smallest_rows), use.names = TRUE)
 
 for (learner_name in learner_filter) {
   learner_spec <- make_learner_spec(learner_name)
@@ -138,7 +129,6 @@ for (learner_name in learner_filter) {
       learner = learner_spec$label,
       test_subset = as.character(iter_row$test.subset),
       train_subsets = iter_row$train.subsets,
-      sample_size = iter_row$sample_size,
       n_train_groups = iter_row$n.train.groups,
       fold = iter_row$test.fold,
       seed = iter_row$seed,
@@ -157,8 +147,7 @@ summary_dt <- raw_dt[, .(
   train_seconds_mean = mean(train_seconds),
   train_seconds_se = sd(train_seconds) / sqrt(.N),
   train_seconds_total = sum(train_seconds),
-  n_runs = .N,
-  n_train_groups = unique(n_train_groups)
+  n_runs = .N
 ), by = .(
   dataset_id,
   dataset_label,
@@ -167,7 +156,7 @@ summary_dt <- raw_dt[, .(
   learner,
   test_subset,
   train_subsets,
-  sample_size
+  n_train_groups
 )]
 
 fwrite(raw_dt, raw_output)

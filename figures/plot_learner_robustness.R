@@ -21,20 +21,19 @@ learner_labels <- c(
 )
 plot_dt[, learner := factor(learner, levels = names(learner_labels), labels = unname(learner_labels))]
 plot_dt[, train_subsets := factor(train_subsets, levels = c("same", "other"))]
-plot_dt[, sample_size := factor(
-  sample_size,
-  levels = c("full", "smallest"),
-  labels = c("Full train sets", "Matched smallest size")
-)]
 plot_dt[, test_subset := factor(
   test_subset,
   levels = c("Baltimore", "Phoenix"),
   labels = c("Test subset: Baltimore", "Test subset: Phoenix")
 )]
+plot_dt[, train_size_label := factor(
+  paste0("Train groups: ", n_train_groups),
+  levels = paste0("Train groups: ", sort(unique(n_train_groups)))
+)]
 
 time_dt <- dcast(
   plot_dt,
-  learner + test_subset + sample_size ~ train_subsets,
+  learner + test_subset + train_size_label ~ train_subsets,
   value.var = "train_seconds_mean"
 )
 time_dt[, time_label := sprintf("time: %.02f / %.02f s", same, other)]
@@ -47,11 +46,11 @@ x_upper <- x_max + 0.40 * x_range
 
 plot_dt <- merge(
   plot_dt,
-  time_dt[, .(learner, test_subset, sample_size, time_label)],
-  by = c("learner", "test_subset", "sample_size"),
+  time_dt[, .(learner, test_subset, train_size_label, time_label)],
+  by = c("learner", "test_subset", "train_size_label"),
   all.x = TRUE
 )
-label_dt <- unique(plot_dt[, .(learner, test_subset, sample_size, time_label)])
+label_dt <- unique(plot_dt[, .(learner, test_subset, train_size_label, time_label)])
 
 subset_colors <- c(same = "red", other = "blue")
 dodge <- position_dodge(width = 0.6)
@@ -78,7 +77,7 @@ figure <- ggplot(
     hjust = 0,
     size = 3
   ) +
-  facet_grid(test_subset ~ sample_size) +
+  facet_grid(test_subset ~ train_size_label) +
   coord_flip() +
   scale_color_manual(values = subset_colors, breaks = c("same", "other")) +
   scale_y_continuous(
