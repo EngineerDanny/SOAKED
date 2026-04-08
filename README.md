@@ -6,7 +6,8 @@ This repository contains the SOAKED NeurIPS E&D paper, the experiment scripts us
 
 - `paper/`: NeurIPS manuscript source, bibliography, template files, TeX rules, and stable paper figures.
 - `R/`: reusable R helpers for SOAKED workflows. This is currently a placeholder for shared code.
-- `experiments/`: experiment runners, including the simulation workflow and qSIP analyses.
+- `experiments/`: experiment runners.
+- `experiments/generate_figures.R`: current simulation runner for the combined simulation-panel figure.
 - `experiments/qsip/`: qSIP analysis scripts and variants.
 - `figures/`: plotting scripts that read saved results and render final figures.
 - `results/`: generated CSV summaries and rendered outputs.
@@ -18,9 +19,24 @@ This repository contains the SOAKED NeurIPS E&D paper, the experiment scripts us
 - Paper figures: `paper/figures/`
 - Simulation runner: `experiments/generate_figures.R`
 - Simulation plotter: `figures/plot_simulation_panels.R`
+- qSIP scripts: `experiments/qsip/`
 - Simulation outputs:
   - `results/simulation_panel_data.csv`
   - `results/combined_simulation_panels.png`
+
+## Requirements
+
+The current experiment and plotting workflow uses R packages including:
+
+- `data.table`
+- `mlr3`
+- `mlr3verse`
+- `mlr3learners`
+- `mlr3extralearners`
+- `mlr3resampling`
+- `rpart`
+- `ggplot2`
+- `patchwork`
 
 ## Simulation Workflow
 
@@ -51,3 +67,5 @@ The plotting script also refreshes the paper copy of the simulation figure:
 cd paper
 latexmk -pdf -interaction=nonstopmode main.tex
 ```
+
+The paper build expects the figure assets under `paper/figures/` and uses the local NeurIPS template files in `paper/`.
