@@ -29,23 +29,6 @@ parse_int_arg <- function(name, default) {
   as.integer(value)
 }
 
-parse_double_arg <- function(name, default) {
-  value <- arg_list[[name]]
-  if (is.null(value)) {
-    return(default)
-  }
-  as.numeric(value)
-}
-
-download_if_missing <- function(url, dest) {
-  if (file.exists(dest)) {
-    return(dest)
-  }
-  dir.create(dirname(dest), recursive = TRUE, showWarnings = FALSE)
-  download.file(url, destfile = dest, quiet = TRUE)
-  dest
-}
-
 sample_preserve_subset_ratio <- function(dt, subset_col, max_rows_largest_subset) {
   if (is.infinite(max_rows_largest_subset)) {
     return(copy(dt))
@@ -77,7 +60,6 @@ make_traffic_task <- function(max_rows_largest_subset) {
   list(
     dataset_id = "traffic_aadt",
     dataset_label = "Traffic AADT",
-    task_type = "regr",
     subset_col = "city_key",
     target = "AADT",
     metric_id = "regr.rmse",
@@ -100,80 +82,42 @@ make_dataset_specs <- function(dataset_ids, max_rows_largest_subset) {
   )
 }
 
-make_learner_spec <- function(task_type, learner_name) {
-  if (task_type == "regr") {
-    if (learner_name == "rpart") {
-      return(list(label = "rpart", learner = lrn("regr.rpart")))
-    }
-    if (learner_name == "glmnet") {
-      learner <- lrn("regr.cv_glmnet")
-      learner$param_set$values <- list(nfolds = 5L)
-      return(list(label = "glmnet", learner = learner))
-    }
-    if (learner_name == "random_forest") {
-      learner <- lrn("regr.ranger")
-      learner$param_set$values <- list(num.trees = 200L)
-      return(list(label = "random_forest", learner = learner))
-    }
-    if (learner_name == "gradient_boosting") {
-      learner <- lrn("regr.gbm")
-      learner$param_set$values <- list(
-        n.trees = 200L,
-        interaction.depth = 3L,
-        shrinkage = 0.05,
-        bag.fraction = 1
-      )
-      return(list(label = "gradient_boosting", learner = learner))
-    }
-    if (learner_name == "dnn") {
-      learner <- lrn("regr.nnet")
-      learner$param_set$values <- list(
-        size = 10L,
-        decay = 1e-4,
-        maxit = 200L,
-        trace = FALSE,
-        MaxNWts = 10000L
-      )
-      return(list(label = "dnn", learner = learner))
-    }
+make_learner_spec <- function(learner_name) {
+  if (learner_name == "rpart") {
+    return(list(label = "rpart", learner = lrn("regr.rpart")))
   }
-  if (task_type == "classif") {
-    if (learner_name == "rpart") {
-      return(list(label = "rpart", learner = lrn("classif.rpart")))
-    }
-    if (learner_name == "glmnet") {
-      learner <- lrn("classif.cv_glmnet")
-      learner$param_set$values <- list(nfolds = 5L)
-      return(list(label = "glmnet", learner = learner))
-    }
-    if (learner_name == "random_forest") {
-      learner <- lrn("classif.ranger")
-      learner$param_set$values <- list(num.trees = 200L)
-      return(list(label = "random_forest", learner = learner))
-    }
-    if (learner_name == "gradient_boosting") {
-      learner <- lrn("classif.gbm")
-      learner$param_set$values <- list(
-        n.trees = 200L,
-        interaction.depth = 3L,
-        shrinkage = 0.05,
-        bag.fraction = 1
-      )
-      return(list(label = "gradient_boosting", learner = learner))
-    }
-    if (learner_name == "dnn") {
-      learner <- lrn("classif.nnet")
-      learner$param_set$values <- list(
-        size = 10L,
-        decay = 1e-4,
-        maxit = 200L,
-        trace = FALSE,
-        MaxNWts = 10000L
-      )
-      return(list(label = "dnn", learner = learner))
-    }
+  if (learner_name == "glmnet") {
+    learner <- lrn("regr.cv_glmnet")
+    learner$param_set$values <- list(nfolds = 5L)
+    return(list(label = "glmnet", learner = learner))
   }
-  stop(sprintf("Unsupported learner '%s' for task type '%s'.", learner_name, task_type))
+  if (learner_name == "random_forest") {
+    learner <- lrn("regr.ranger")
+    learner$param_set$values <- list(num.trees = 200L)
+    return(list(label = "random_forest", learner = learner))
+  }
+  if (learner_name == "gradient_boosting") {
+    learner <- lrn("regr.gbm")
+    learner$param_set$values <- list(
+      n.trees = 200L,
+      interaction.depth = 3L,
+      shrinkage = 0.05,
+      bag.fraction = 1
+    )
+    return(list(label = "gradient_boosting", learner = learner))
+  }
+  if (learner_name == "dnn") {
+    learner <- lrn("regr.nnet")
+    learner$param_set$values <- list(
+      size = 10L,
+      decay = 1e-4,
+      maxit = 200L,
+      trace = FALSE,
+      MaxNWts = 10000L
+    )
+    return(list(label = "dnn", learner = learner))
+  }
+  stop(sprintf("Unsupported regression learner '%s'.", learner_name))
 }
 
 dataset_filter <- arg_list[["datasets"]]
@@ -230,7 +174,7 @@ for (dataset_name in names(dataset_specs)) {
   iteration_dt <- rbindlist(list(full_rows, smallest_rows), use.names = TRUE)
 
   for (learner_name in learner_filter) {
-    learner_spec <- make_learner_spec(dataset_spec$task_type, learner_name)
+    learner_spec <- make_learner_spec(learner_name)
     message(sprintf("  learner: %s", learner_spec$label))
     for (iter_i in seq_len(nrow(iteration_dt))) {
       iter_row <- iteration_dt[iter_i]
@@ -243,7 +187,6 @@ for (dataset_name in names(dataset_specs)) {
       all_raw[[raw_i]] <- data.table(
         dataset_id = dataset_spec$dataset_id,
         dataset_label = dataset_spec$dataset_label,
-        task_type = dataset_spec$task_type,
         metric_id = dataset_spec$metric_id,
         metric_label = dataset_spec$metric_label,
         learner = learner_spec$label,
@@ -274,7 +217,6 @@ summary_dt <- raw_dt[, .(
 ), by = .(
   dataset_id,
   dataset_label,
-  task_type,
   metric_id,
   metric_label,
   learner,
