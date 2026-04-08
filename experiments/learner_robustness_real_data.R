@@ -11,12 +11,16 @@ script_path <- normalizePath(sub("^--file=", "", script_arg[[1L]]), mustWork = T
 repo_root <- normalizePath(file.path(dirname(script_path), ".."), mustWork = TRUE)
 
 arg_list <- list()
+allowed_arg_names <- c("learners", "folds", "seeds")
 for (arg in commandArgs(trailingOnly = TRUE)) {
   if (!startsWith(arg, "--")) {
     stop(sprintf("Unsupported argument format: %s", arg))
   }
   kv <- strsplit(sub("^--", "", arg), "=", fixed = TRUE)[[1L]]
   key <- kv[[1L]]
+  if (!(key %in% allowed_arg_names)) {
+    stop(sprintf("Unsupported argument name: %s", key))
+  }
   value <- if (length(kv) >= 2L) paste(kv[-1L], collapse = "=") else "TRUE"
   arg_list[[key]] <- value
 }
@@ -86,15 +90,9 @@ if (is.null(learner_filter)) {
 }
 folds <- parse_int_arg("folds", 5L)
 seeds <- parse_int_arg("seeds", 1L)
-max_rows_largest_subset <- parse_int_arg("max-rows-largest-subset", 5000L)
-raw_output <- arg_list[["output-raw"]]
-if (is.null(raw_output)) {
-  raw_output <- file.path(repo_root, "results", "learner_robustness_runs.csv")
-}
-summary_output <- arg_list[["output-summary"]]
-if (is.null(summary_output)) {
-  summary_output <- file.path(repo_root, "results", "learner_robustness_summary.csv")
-}
+max_rows_largest_subset <- 5000L
+raw_output <- file.path(repo_root, "results", "learner_robustness_runs.csv")
+summary_output <- file.path(repo_root, "results", "learner_robustness_summary.csv")
 
 dir.create(dirname(raw_output), recursive = TRUE, showWarnings = FALSE)
 
