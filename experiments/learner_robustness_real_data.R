@@ -72,11 +72,12 @@ traffic_dt <- fread(file.path(repo_root, "data", "traffic.csv"))
 traffic_dt <- traffic_dt[city_key %in% c("Phoenix", "Baltimore")]
 traffic_dt <- sample_preserve_subset_ratio(traffic_dt, "city_key", max_rows_largest_subset)
 traffic_dt[, subset_id := factor(city_key)]
+traffic_dt[, log_AADT := log(AADT)]
 
 task <- TaskRegr$new(
   "traffic_aadt",
   traffic_dt[, .(
-    AADT,
+    log_AADT,
     NTL,
     POP,
     ROAD_DENS,
@@ -86,7 +87,7 @@ task <- TaskRegr$new(
     S2_NIR,
     subset_id
   )],
-  target = "AADT"
+  target = "log_AADT"
 )
 task$set_col_roles("subset_id", c("subset"))
 metric <- msr("regr.rmse")
@@ -127,7 +128,7 @@ for (learner_name in learner_filter) {
       dataset_id = "traffic_aadt",
       dataset_label = "Traffic AADT",
       metric_id = "regr.rmse",
-      metric_label = "RMSE",
+      metric_label = "RMSE on log(AADT)",
       learner = learner_spec$label,
       test_subset = as.character(iter_row$test.subset),
       train_subsets = iter_row$train.subsets,
