@@ -33,10 +33,9 @@ make_learner_spec <- function(learner_name) {
         learner = learner,
         resampling = rsmp("cv", folds = 3L),
         measure = msr("regr.rmse"),
-        terminator = trm("evals", n_evals = 9L),
+        terminator = trm("evals", n_evals = 3L),
         search_space = ps(
-          cp = p_dbl(lower = 1e-4, upper = 1e-2, logscale = TRUE),
-          maxdepth = p_int(lower = 3L, upper = 9L)
+          cp = p_dbl(lower = 1e-4, upper = 1e-2, logscale = TRUE)
         )
       )
       list(label = "rpart", learner = learner)
