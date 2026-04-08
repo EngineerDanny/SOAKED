@@ -8,7 +8,7 @@ This repository contains the SOAKED NeurIPS E&D paper, the experiment scripts us
 - `R/`: reusable R helpers for SOAKED workflows. This is currently a placeholder for shared code.
 - `experiments/`: experiment runners.
 - `experiments/generate_figures.R`: current simulation runner for the combined simulation-panel figure.
-- `experiments/learner_robustness_real_data.R`: learner-robustness experiment on real datasets, with timing output.
+- `experiments/learner_robustness_real_data.R`: learner-robustness experiment on the local `traffic_aadt` real dataset, with timing output.
 - `experiments/qsip/`: qSIP analysis scripts and variants.
 - `figures/`: plotting scripts that read saved results and render final figures.
 - `results/`: generated CSV summaries and rendered outputs.

@@ -86,86 +86,9 @@ make_traffic_task <- function(max_rows_largest_subset) {
   )
 }
 
-make_adult_task <- function(max_rows_largest_subset) {
-  cache_dir <- file.path(repo_root, "data", "external")
-  train_path <- file.path(cache_dir, "adult.data")
-  test_path <- file.path(cache_dir, "adult.test")
-  download_if_missing(
-    "https://archive.ics.uci.edu/ml/machine-learning-databases/adult/adult.data",
-    train_path
-  )
-  download_if_missing(
-    "https://archive.ics.uci.edu/ml/machine-learning-databases/adult/adult.test",
-    test_path
-  )
-  col_names <- c(
-    "age", "workclass", "fnlwgt", "education", "education_num",
-    "marital_status", "occupation", "relationship", "sex", "capital_gain",
-    "capital_loss", "hours_per_week", "native_country", "income"
-  )
-  train_dt <- fread(train_path, header = FALSE, strip.white = TRUE, col.names = col_names)
-  test_dt <- fread(test_path, header = FALSE, skip = 1L, strip.white = TRUE, col.names = col_names)
-  dt <- rbindlist(list(train_dt, test_dt), use.names = TRUE)
-  dt[, income := gsub("\\.$", "", income)]
-  dt <- dt[!Reduce(`|`, lapply(.SD, function(x) x == "?")), .SDcols = names(dt)]
-  dt <- dt[sex %in% c("Male", "Female")]
-  dt <- sample_preserve_subset_ratio(dt, "sex", max_rows_largest_subset)
-  dt[, subset_id := factor(sex)]
-  dt[, income := factor(income)]
-  dt[, sex := NULL]
-  task <- TaskClassif$new("adult_income", dt, target = "income")
-  task$set_col_roles("subset_id", c("subset"))
-  list(
-    dataset_id = "adult_income",
-    dataset_label = "Adult Income",
-    task_type = "classif",
-    subset_col = "sex",
-    target = "income",
-    metric_id = "classif.ce",
-    metric_label = "Classification Error",
-    task = task
-  )
-}
-
-make_wine_task <- function(max_rows_largest_subset) {
-  cache_dir <- file.path(repo_root, "data", "external")
-  red_path <- file.path(cache_dir, "winequality-red.csv")
-  white_path <- file.path(cache_dir, "winequality-white.csv")
-  download_if_missing(
-    "https://archive.ics.uci.edu/ml/machine-learning-databases/wine-quality/winequality-red.csv",
-    red_path
-  )
-  download_if_missing(
-    "https://archive.ics.uci.edu/ml/machine-learning-databases/wine-quality/winequality-white.csv",
-    white_path
-  )
-  red_dt <- fread(red_path, sep = ";")
-  white_dt <- fread(white_path, sep = ";")
-  red_dt[, wine_type := "red"]
-  white_dt[, wine_type := "white"]
-  dt <- rbindlist(list(red_dt, white_dt), use.names = TRUE)
-  dt <- sample_preserve_subset_ratio(dt, "wine_type", max_rows_largest_subset)
-  dt[, subset_id := factor(wine_type)]
-  dt[, wine_type := NULL]
-  task <- TaskRegr$new("wine_quality", dt, target = "quality")
-  task$set_col_roles("subset_id", c("subset"))
-  list(
-    dataset_id = "wine_quality",
-    dataset_label = "Wine Quality",
-    task_type = "regr",
-    subset_col = "wine_type",
-    target = "quality",
-    metric_id = "regr.rmse",
-    metric_label = "RMSE",
-    task = task
-  )
-}
-
 make_dataset_specs <- function(dataset_ids, max_rows_largest_subset) {
   loader_map <- list(
-    traffic_aadt = make_traffic_task,
-    adult_income = make_adult_task,
-    wine_quality = make_wine_task
+    traffic_aadt = make_traffic_task
   )
   if (!all(dataset_ids %in% names(loader_map))) {
     unknown_ids <- setdiff(dataset_ids, names(loader_map))
@@ -285,7 +208,7 @@ classify_conclusion <- function(metric_dt, minimize, sample_ratio_cutoff, persis
 
 dataset_filter <- arg_list[["datasets"]]
 if (is.null(dataset_filter)) {
-  dataset_filter <- c("traffic_aadt", "adult_income", "wine_quality")
+  dataset_filter <- "traffic_aadt"
 } else {
   dataset_filter <- strsplit(dataset_filter, ",", fixed = TRUE)[[1L]]
 }
