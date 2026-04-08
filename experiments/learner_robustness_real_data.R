@@ -40,41 +40,42 @@ sample_preserve_subset_ratio <- function(dt, subset_col, max_rows_largest_subset
 }
 
 make_learner_spec <- function(learner_name) {
-  if (learner_name == "rpart") {
-    return(list(label = "rpart", learner = lrn("regr.rpart")))
-  }
-  if (learner_name == "glmnet") {
-    learner <- lrn("regr.cv_glmnet")
-    learner$param_set$values <- list(nfolds = 5L)
-    return(list(label = "glmnet", learner = learner))
-  }
-  if (learner_name == "random_forest") {
-    learner <- lrn("regr.ranger")
-    learner$param_set$values <- list(num.trees = 200L)
-    return(list(label = "random_forest", learner = learner))
-  }
-  if (learner_name == "gradient_boosting") {
-    learner <- lrn("regr.gbm")
-    learner$param_set$values <- list(
-      n.trees = 200L,
-      interaction.depth = 3L,
-      shrinkage = 0.05,
-      bag.fraction = 1
-    )
-    return(list(label = "gradient_boosting", learner = learner))
-  }
-  if (learner_name == "dnn") {
-    learner <- lrn("regr.nnet")
-    learner$param_set$values <- list(
-      size = 10L,
-      decay = 1e-4,
-      maxit = 200L,
-      trace = FALSE,
-      MaxNWts = 10000L
-    )
-    return(list(label = "dnn", learner = learner))
-  }
-  stop(sprintf("Unsupported regression learner '%s'.", learner_name))
+  switch(
+    learner_name,
+    rpart = list(label = "rpart", learner = lrn("regr.rpart")),
+    glmnet = {
+      learner <- lrn("regr.cv_glmnet")
+      learner$param_set$values <- list(nfolds = 5L)
+      list(label = "glmnet", learner = learner)
+    },
+    random_forest = {
+      learner <- lrn("regr.ranger")
+      learner$param_set$values <- list(num.trees = 200L)
+      list(label = "random_forest", learner = learner)
+    },
+    gradient_boosting = {
+      learner <- lrn("regr.gbm")
+      learner$param_set$values <- list(
+        n.trees = 200L,
+        interaction.depth = 3L,
+        shrinkage = 0.05,
+        bag.fraction = 1
+      )
+      list(label = "gradient_boosting", learner = learner)
+    },
+    dnn = {
+      learner <- lrn("regr.nnet")
+      learner$param_set$values <- list(
+        size = 10L,
+        decay = 1e-4,
+        maxit = 200L,
+        trace = FALSE,
+        MaxNWts = 10000L
+      )
+      list(label = "dnn", learner = learner)
+    },
+    stop(sprintf("Unsupported regression learner '%s'.", learner_name))
+  )
 }
 
 learner_filter <- arg_list[["learners"]]
