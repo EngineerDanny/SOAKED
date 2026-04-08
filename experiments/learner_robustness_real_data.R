@@ -10,29 +10,6 @@ script_arg <- grep("^--file=", commandArgs(), value = TRUE)
 script_path <- normalizePath(sub("^--file=", "", script_arg[[1L]]), mustWork = TRUE)
 repo_root <- normalizePath(file.path(dirname(script_path), ".."), mustWork = TRUE)
 
-arg_list <- list()
-allowed_arg_names <- c("learners", "folds", "seeds")
-for (arg in commandArgs(trailingOnly = TRUE)) {
-  if (!startsWith(arg, "--")) {
-    stop(sprintf("Unsupported argument format: %s", arg))
-  }
-  kv <- strsplit(sub("^--", "", arg), "=", fixed = TRUE)[[1L]]
-  key <- kv[[1L]]
-  if (!(key %in% allowed_arg_names)) {
-    stop(sprintf("Unsupported argument name: %s", key))
-  }
-  value <- if (length(kv) >= 2L) paste(kv[-1L], collapse = "=") else "TRUE"
-  arg_list[[key]] <- value
-}
-
-parse_int_arg <- function(name, default) {
-  value <- arg_list[[name]]
-  if (is.null(value)) {
-    return(default)
-  }
-  as.integer(value)
-}
-
 sample_preserve_subset_ratio <- function(dt, subset_col, max_rows_largest_subset) {
   if (is.infinite(max_rows_largest_subset)) {
     return(copy(dt))
@@ -82,14 +59,9 @@ make_learner_spec <- function(learner_name) {
   )
 }
 
-learner_filter <- arg_list[["learners"]]
-if (is.null(learner_filter)) {
-  learner_filter <- c("rpart", "glmnet", "random_forest", "gradient_boosting", "dnn")
-} else {
-  learner_filter <- strsplit(learner_filter, ",", fixed = TRUE)[[1L]]
-}
-folds <- parse_int_arg("folds", 5L)
-seeds <- parse_int_arg("seeds", 1L)
+learner_filter <- c("rpart", "glmnet", "random_forest", "gradient_boosting", "dnn")
+folds <- 5L
+seeds <- 1L
 max_rows_largest_subset <- 5000L
 raw_output <- file.path(repo_root, "results", "learner_robustness_runs.csv")
 summary_output <- file.path(repo_root, "results", "learner_robustness_summary.csv")
