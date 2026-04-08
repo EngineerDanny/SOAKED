@@ -4,14 +4,25 @@ This repository contains the SOAKED NeurIPS E&D paper, the experiment scripts us
 
 ## Layout
 
-- `paper/`: NeurIPS manuscript source and stable paper figures.
-- `R/`: reusable R helpers for SOAKED workflows.
-- `experiments/`: dataset- or figure-specific experiment runners.
-- `figures/`: plotting scripts that read saved results and render figures.
+- `paper/`: NeurIPS manuscript source, bibliography, template files, TeX rules, and stable paper figures.
+- `R/`: reusable R helpers for SOAKED workflows. This is currently a placeholder for shared code.
+- `experiments/simulation/`: simulation runner used to generate the combined simulation-panel data.
+- `experiments/qsip/`: qSIP analysis scripts and variants.
+- `figures/`: plotting scripts that read saved results and render final figures.
 - `results/`: generated CSV summaries and rendered outputs.
 - `data/`: local data assets used by experiments.
 
-## Current Simulation Workflow
+## Current Files
+
+- Paper source: `paper/main.tex`
+- Paper figures: `paper/figures/`
+- Simulation runner: `experiments/simulation/generate_figures.R`
+- Simulation plotter: `figures/plot_simulation_panels.R`
+- Simulation outputs:
+  - `results/simulation_panel_data.csv`
+  - `results/combined_simulation_panels.png`
+
+## Simulation Workflow
 
 Generate the simulation summaries:
 
@@ -25,12 +36,12 @@ Render the combined simulation figure:
 Rscript figures/plot_simulation_panels.R
 ```
 
-This writes:
+By default, these scripts write:
 
-- `results/simulation/simulation_panel_data.csv`
-- `results/simulation/combined_simulation_panels.png`
+- `results/simulation_panel_data.csv`
+- `results/combined_simulation_panels.png`
 
-The paper uses a stable copy of the simulation figure in:
+The plotting script also refreshes the paper copy of the simulation figure:
 
 - `paper/figures/combined_simulation_panels.png`
 
