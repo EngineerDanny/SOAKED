@@ -17,7 +17,6 @@ learner_labels <- c(
   rpart = "rpart",
   glmnet = "glmnet",
   random_forest = "Random forest",
-  gradient_boosting = "Gradient boosting",
   dnn = "DNN"
 )
 plot_dt[, learner := factor(learner, levels = names(learner_labels), labels = unname(learner_labels))]

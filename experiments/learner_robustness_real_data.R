@@ -35,16 +35,6 @@ make_learner_spec <- function(learner_name) {
       learner$param_set$values <- list(num.trees = 200L)
       list(label = "random_forest", learner = learner)
     },
-    gradient_boosting = {
-      learner <- lrn("regr.gbm")
-      learner$param_set$values <- list(
-        n.trees = 200L,
-        interaction.depth = 3L,
-        shrinkage = 0.05,
-        bag.fraction = 1
-      )
-      list(label = "gradient_boosting", learner = learner)
-    },
     dnn = {
       learner <- lrn("regr.nnet")
       learner$param_set$values <- list(
@@ -60,7 +50,7 @@ make_learner_spec <- function(learner_name) {
   )
 }
 
-learner_filter <- c("featureless", "rpart", "glmnet", "random_forest", "gradient_boosting", "dnn")
+learner_filter <- c("featureless", "rpart", "glmnet", "random_forest", "dnn")
 folds <- 5L
 seeds <- 1L
 max_rows_largest_subset <- 5000L
