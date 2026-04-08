@@ -13,6 +13,7 @@ plot_dt <- fread(input_csv)
 plot_dt <- plot_dt[train_subsets %in% c("same", "other")]
 
 learner_labels <- c(
+  featureless = "Featureless",
   rpart = "rpart",
   glmnet = "glmnet",
   random_forest = "Random forest",

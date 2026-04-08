@@ -23,6 +23,7 @@ sample_preserve_subset_ratio <- function(dt, subset_col, max_rows_largest_subset
 make_learner_spec <- function(learner_name) {
   switch(
     learner_name,
+    featureless = list(label = "featureless", learner = lrn("regr.featureless")),
     rpart = list(label = "rpart", learner = lrn("regr.rpart")),
     glmnet = {
       learner <- lrn("regr.cv_glmnet")
@@ -59,7 +60,7 @@ make_learner_spec <- function(learner_name) {
   )
 }
 
-learner_filter <- c("rpart", "glmnet", "random_forest", "gradient_boosting", "dnn")
+learner_filter <- c("featureless", "rpart", "glmnet", "random_forest", "gradient_boosting", "dnn")
 folds <- 5L
 seeds <- 1L
 max_rows_largest_subset <- 5000L
