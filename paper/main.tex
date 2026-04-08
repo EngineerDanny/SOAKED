@@ -7,6 +7,7 @@
 \usepackage[utf8]{inputenc}
 \usepackage[T1]{fontenc}
 \usepackage{graphicx}
+\graphicspath{{figures/}}
 \usepackage{hyperref}
 \usepackage{url}
 \usepackage{booktabs}
@@ -146,32 +147,24 @@ y_i = \sin(z_i) + \varepsilon_i,
 with $\varepsilon_i \sim \mathcal{N}(0,\sigma_s^2)$.
 We then applied SOAKED with a regression tree learner (\texttt{rpart}) and report root mean squared error (RMSE) over 10-fold cross-validation.
 
-Figure~\ref{fig:sim-iid} corresponds to an i.i.d.\ setting in which both subsets are sampled from the same distribution, with $\sigma_s=0.1$ for each subset, but the subset sizes differ ($n_{\mathrm{large}}=80$, $n_{\mathrm{small}}=40$).
-In the full-data panel, the All model has the lowest RMSE because it uses the largest training set.
-After downsampling all training configurations to the smallest feasible size, the performance gaps shrink substantially and the three training choices become much more similar.
-This is the expected SOAKED pattern when the apparent advantage of one training configuration is primarily driven by sample size.
+Figure~\ref{fig:sim-combined} summarizes three simulation regimes.
+The top row provides a visual summary of the two observed subsets used to define Same and Other, and the bottom row shows the corresponding SOAKED RMSE curves as train size increases.
+In the Sample Size Effect column, the top panel shows substantial overlap between the two subsets, so any advantage of All in the bottom panel is attributable to having more training data.
+As train size increases, the RMSE curves move closer together, which is the expected SOAKED pattern when apparent differences are driven primarily by sample size.
 
-Figure~\ref{fig:sim-different} uses the same mean function but introduces a subset effect through different noise levels and different subset sizes: the easy subset has $(n_{\mathrm{easy}},\sigma_{\mathrm{easy}})=(400,0.1)$ and the hard subset has $(n_{\mathrm{hard}},\sigma_{\mathrm{hard}})=(200,1.7)$.
-When predicting on the easy subset, Same remains best and Other remains worst even after downsampling.
-When predicting on the hard subset, the ordering reverses: Other is best, All is intermediate, and Same is worst in both the full-size and downsampled panels.
-Because these qualitative differences persist after matching training sample sizes, SOAKED correctly identifies a genuine subset effect rather than a pure sample-size effect.
+The Subset Effect column changes the subset mean while keeping the within-subset noise structure fixed, which is visible in the separation between the two subsets in the top panel.
+Here the ordering of Same, Other, and All remains separated across train sizes, indicating that the performance differences persist even after controlling for train size.
 
-\begin{figure}
-    \centering
-\includegraphics[width=0.8\textwidth]{cv-subsets-small-large-noise-different-easy.png}
-\includegraphics[width=0.8\textwidth]{cv-subsets-small-large-noise-different-hard.png}
-% https://github.com/tdhock/2024-08-ift603-712/blob/main/cv-subsets-small-large-noise.R
-    \caption{Results of using SOAKED on simulated data with a shared sinusoidal mean function, noise levels that differ by subset, and different subset sizes.}
-    \label{fig:sim-different}
-\end{figure}
+The Combined Effect column uses subsets that differ in both noise level and effective difficulty.
+The top panel shows both overlap and heterogeneity, while the bottom panel shows that increasing train size improves all three training choices but does not eliminate the gap between them.
+In this regime, increasing train size improves all three training choices, but a substantial gap remains between them.
+This is the pattern expected when both sample size and subset membership contribute to predictive performance.
 
 \begin{figure}
     \centering
-\includegraphics[width=0.8\textwidth]{cv-subsets-small-large-noise-iid_easy-large.png}
-\includegraphics[width=0.8\textwidth]{cv-subsets-small-large-noise-iid_easy-small.png}
-% https://github.com/tdhock/2024-08-ift603-712/blob/main/cv-subsets-small-large-noise.R
-    \caption{Results of using SOAKED on simulated data with two i.i.d.\ subsets that differ only in sample size.}
-    \label{fig:sim-iid}
+\includegraphics[width=\textwidth]{combined_simulation_panels.png}
+    \caption{SOAKED on simulated regression data with three regimes. The top row shows the two observed subsets used to define Same and Other, and the bottom row shows RMSE (mean $\pm$ SE) as a function of training size for Same, Other, and All over 10-fold cross-validation with 10 random downsampling seeds. In the Sample Size Effect regime, the subsets overlap and the RMSE curves converge as training size increases. In the Subset Effect regime, the subsets differ systematically and the RMSE ordering remains separated after train-size matching. In the Combined Effect regime, the subsets differ in both difficulty and variability, so both larger training sets and subset identity affect performance.}
+    \label{fig:sim-combined}
 \end{figure}
 
 \subsection{Benchmark classification data sets}
