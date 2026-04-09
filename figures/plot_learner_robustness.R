@@ -87,8 +87,8 @@ pvalue_dt[, learner_num := match(as.character(learner), unname(learner_labels))]
 pvalue_dt[, p_label := ifelse(p_value < 1e-4, "P<0.0001", sprintf("P=%.4f", p_value))]
 pvalue_dt[, y_start := pmin(same, other)]
 pvalue_dt[, y_end := pmax(same, other)]
-pvalue_dt[, x_text := learner_num + 0.18]
-pvalue_dt[, y_text := pmax(y_start - 0.16 * x_range, x_lower + 0.04 * x_range)]
+pvalue_dt[, x_text := learner_num]
+pvalue_dt[, y_text := (y_start + y_end) / 2]
 
 figure <- ggplot(
   plot_dt,
@@ -128,7 +128,8 @@ figure <- ggplot(
     aes(x = x_text, y = y_text, label = p_label),
     inherit.aes = FALSE,
     color = "gray20",
-    hjust = 0,
+    hjust = 0.5,
+    vjust = 0.5,
     size = 3
   ) +
   facet_grid(test_subset ~ sample_size) +
