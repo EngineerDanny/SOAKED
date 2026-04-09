@@ -14,6 +14,7 @@ folds <- 5L
 seeds <- 1L
 raw_output <- file.path(repo_root, "results", "learner_robustness_runs.csv")
 summary_output <- file.path(repo_root, "results", "learner_robustness_summary.csv")
+time_output <- file.path(repo_root, "results", "learner_train_time_summary.csv")
 
 dir.create(dirname(raw_output), recursive = TRUE, showWarnings = FALSE)
 
@@ -61,7 +62,16 @@ reg.learner.list <- list(
 )
 
 bench.grid <- mlr3::benchmark_grid(task, reg.learner.list, soak)
-bench.result <- mlr3::benchmark(bench.grid)
+bench.result <- mlr3::benchmark(bench.grid, store_models = TRUE)
+timing_dt <- as.data.table(bench.result)[, .(
+  learner = fcase(
+    learner_id == "regr.cv_glmnet", "glmnet",
+    learner_id == "regr.ranger", "random_forest",
+    default = sub("^regr\\.", "", learner_id)
+  ),
+  iteration,
+  train_seconds = vapply(learner, function(x) x$timings[["train"]], numeric(1))
+)]
 raw_dt <- as.data.table(mlr3resampling::score(bench.result, metric))[, .(
   dataset_id = "traffic_aadt",
   dataset_label = "Traffic AADT",
@@ -80,6 +90,7 @@ raw_dt <- as.data.table(mlr3resampling::score(bench.result, metric))[, .(
   iteration,
   metric_value = regr.rmse
 )]
+raw_dt <- merge(raw_dt, timing_dt, by = c("learner", "iteration"))
 summary_dt <- raw_dt[, .(
   metric_mean = mean(metric_value),
   metric_se = sd(metric_value) / sqrt(.N),
@@ -94,6 +105,12 @@ summary_dt <- raw_dt[, .(
   train_subsets,
   n_train_groups
 )]
+time_dt <- raw_dt[, .(
+  train_seconds_mean = mean(train_seconds),
+  train_seconds_se = sd(train_seconds) / sqrt(.N),
+  n_runs = .N
+), by = .(learner)]
 
 fwrite(raw_dt, raw_output)
 fwrite(summary_dt, summary_output)
+fwrite(time_dt, time_output)
