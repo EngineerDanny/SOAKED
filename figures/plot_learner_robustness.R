@@ -86,9 +86,8 @@ pvalue_dt[, learner_num := match(as.character(learner), unname(learner_labels))]
 pvalue_dt[, p_label := ifelse(p_value < 1e-4, "P<0.0001", sprintf("P=%.4f", p_value))]
 pvalue_dt[, y_start := pmin(same, other)]
 pvalue_dt[, y_end := pmax(same, other)]
-pvalue_dt[, y_mid := (same + other) / 2]
-pvalue_dt[, x_text := learner_num + 0.24]
-tick_half_width <- 0.08
+pvalue_dt[, y_text := y_start + 0.15 * (y_end - y_start)]
+pvalue_dt[, x_text := learner_num + 0.18]
 
 figure <- ggplot(
   plot_dt,
@@ -118,33 +117,9 @@ figure <- ggplot(
     color = "gray35",
     linewidth = 0.4
   ) +
-  geom_segment(
-    data = pvalue_dt,
-    aes(
-      x = learner_num - tick_half_width,
-      xend = learner_num + tick_half_width,
-      y = y_start,
-      yend = y_start
-    ),
-    inherit.aes = FALSE,
-    color = "gray35",
-    linewidth = 0.4
-  ) +
-  geom_segment(
-    data = pvalue_dt,
-    aes(
-      x = learner_num - tick_half_width,
-      xend = learner_num + tick_half_width,
-      y = y_end,
-      yend = y_end
-    ),
-    inherit.aes = FALSE,
-    color = "gray35",
-    linewidth = 0.4
-  ) +
   geom_text(
     data = pvalue_dt,
-    aes(x = x_text, y = y_mid, label = p_label),
+    aes(x = x_text, y = y_text, label = p_label),
     inherit.aes = FALSE,
     color = "gray20",
     size = 3
