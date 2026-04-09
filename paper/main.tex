@@ -175,26 +175,7 @@ These definitions yield the exact identity
 \end{equation}
 
 In practice, we estimate these quantities by averaging the chosen loss over outer cross-validation splits and, for matched-size comparisons, over random downsampling seeds.
-When $\Delta_t^{\mathrm{full}}(a,b)\neq 0$, we also report the signed subset-effect and sample-size-effect percentages,
-\begin{equation}
-P_t^{\mathrm{subset}}(a,b)
-:=
-100\cdot
-\frac{\Delta_t^{\mathrm{subset}}(a,b)}
-{\Delta_t^{\mathrm{full}}(a,b)},
-\qquad
-P_t^{\mathrm{size}}(a,b)
-:=
-100\cdot
-\frac{\Delta_t^{\mathrm{size}}(a,b)}
-{\Delta_t^{\mathrm{full}}(a,b)},
-\label{eq:pct-components}
-\end{equation}
-so that
-\[
-P_t^{\mathrm{subset}}(a,b)+P_t^{\mathrm{size}}(a,b)=100.
-\]
-These percentages are only reported when the full-data gap is not too close to zero, because very small denominators can make the decomposition unstable.
+For descriptive summaries, we also report signed percentage versions of the subset-effect and sample-size-effect components; these are defined in Appendix~\ref{sec:appendix-percentages}.
 \section{Results}
 
 \subsection{Learner robustness on the carbon-emissions traffic data}
@@ -341,6 +322,33 @@ i: all has intermediate accuracy.
 }
     \label{tab:placeholder}
 \end{table}
+
+\appendix
+
+\section{Appendix}
+\subsection{Signed percentage decomposition}
+\label{sec:appendix-percentages}
+When $\Delta_t^{\mathrm{full}}(a,b)\neq 0$, we define the signed subset-effect and sample-size-effect percentages by
+\begin{equation}
+P_t^{\mathrm{subset}}(a,b)
+:=
+100\cdot
+\frac{\Delta_t^{\mathrm{subset}}(a,b)}
+{\Delta_t^{\mathrm{full}}(a,b)},
+\qquad
+P_t^{\mathrm{size}}(a,b)
+:=
+100\cdot
+\frac{\Delta_t^{\mathrm{size}}(a,b)}
+{\Delta_t^{\mathrm{full}}(a,b)}.
+\label{eq:pct-components}
+\end{equation}
+By construction,
+\[
+P_t^{\mathrm{subset}}(a,b)+P_t^{\mathrm{size}}(a,b)=100.
+\]
+Because these percentages are signed, they can fall outside the interval $[0,100]$ when the subset and size components oppose one another.
+In practice, we report these percentages only when the full-data gap is not too close to zero, because very small denominators can make the decomposition unstable.
 
 
 \bibliographystyle{abbrvnat}
