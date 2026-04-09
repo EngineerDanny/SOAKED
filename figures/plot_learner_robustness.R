@@ -61,6 +61,7 @@ plot_dt[, text_label := sprintf("%.3f±%.3f", metric_mean, metric_se)]
 x_min <- min(plot_dt$metric_mean - plot_dt$metric_se)
 x_max <- max(plot_dt$metric_mean + plot_dt$metric_se)
 x_range <- x_max - x_min
+x_lower <- x_min - 0.16 * x_range
 x_upper <- x_max + 0.20 * x_range
 
 subset_colors <- c(same = "red", other = "blue")
@@ -86,8 +87,8 @@ pvalue_dt[, learner_num := match(as.character(learner), unname(learner_labels))]
 pvalue_dt[, p_label := ifelse(p_value < 1e-4, "P<0.0001", sprintf("P=%.4f", p_value))]
 pvalue_dt[, y_start := pmin(same, other)]
 pvalue_dt[, y_end := pmax(same, other)]
-pvalue_dt[, y_text := y_start + 0.15 * (y_end - y_start)]
 pvalue_dt[, x_text := learner_num + 0.18]
+pvalue_dt[, y_text := pmax(y_start - 0.16 * x_range, x_lower + 0.04 * x_range)]
 
 figure <- ggplot(
   plot_dt,
@@ -122,13 +123,14 @@ figure <- ggplot(
     aes(x = x_text, y = y_text, label = p_label),
     inherit.aes = FALSE,
     color = "gray20",
+    hjust = 0,
     size = 3
   ) +
   facet_grid(test_subset ~ sample_size) +
   coord_flip() +
   scale_color_manual(values = subset_colors, breaks = c("same", "other")) +
   scale_y_continuous(
-    limits = c(x_min, x_upper),
+    limits = c(x_lower, x_upper),
     expand = expansion(mult = c(0.02, 0.02))
   ) +
   labs(
