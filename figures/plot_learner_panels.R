@@ -21,7 +21,7 @@ robustness_plot <- robustness_env$figure +
 time_env <- new.env(parent = globalenv())
 sys.source(time_script, envir = time_env)
 time_plot <- time_env$figure +
-  labs(title = "B) Training Time Per Run (s, log-scaled)") +
+  labs(title = "B) Time to Train") +
   theme(
     plot.title = element_text(face = "bold", hjust = 0)
   )
