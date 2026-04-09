@@ -113,10 +113,9 @@ figure <- ggplot(
     show.legend = FALSE
   ) +
   geom_point(
-    aes(fill = train_subsets),
     position = dodge,
     size = 2,
-    shape = 21,
+    shape = 1,
     stroke = 0.8
   ) +
   geom_text(
@@ -148,15 +147,13 @@ figure <- ggplot(
     labels = subset_labels,
     guide = guide_legend(
       override.aes = list(
-        shape = 21,
-        fill = "white",
+        shape = 1,
         linewidth = 0,
         size = 2.5,
         stroke = 0.8
       )
     )
   ) +
-  scale_fill_manual(values = c(same = "white", other = "white"), guide = "none") +
   scale_y_continuous(
     limits = c(x_lower, x_upper),
     expand = expansion(mult = c(0.02, 0.02))
