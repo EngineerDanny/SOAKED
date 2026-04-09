@@ -11,6 +11,14 @@ paper_png <- file.path(repo_root, "paper", "figures", "learner_robustness_plot.p
 
 plot_dt <- fread(input_csv)
 plot_dt <- plot_dt[train_subsets %in% c("same", "other")]
+smallest_dt <- plot_dt[, .(smallest_n = min(n_train_groups)), by = test_subset]
+full_dt <- plot_dt[, .(full_n = max(n_train_groups)), by = .(test_subset, train_subsets)]
+plot_dt <- merge(plot_dt, smallest_dt, by = "test_subset")
+plot_dt <- merge(plot_dt, full_dt, by = c("test_subset", "train_subsets"))
+plot_dt <- rbindlist(list(
+  plot_dt[n_train_groups == smallest_n][, sample_size := "Matched smallest size"],
+  plot_dt[n_train_groups == full_n][, sample_size := "Full train sets"]
+), use.names = TRUE)
 
 learner_labels <- c(
   featureless = "Featureless",
@@ -23,9 +31,9 @@ plot_dt[, test_subset := factor(
   levels = c("Baltimore", "Phoenix"),
   labels = c("Test subset: Baltimore", "Test subset: Phoenix")
 )]
-plot_dt[, train_size_label := factor(
-  paste0("Train groups: ", n_train_groups),
-  levels = paste0("Train groups: ", sort(unique(n_train_groups)))
+plot_dt[, sample_size := factor(
+  sample_size,
+  levels = c("Full train sets", "Matched smallest size")
 )]
 
 x_min <- min(plot_dt$metric_mean - plot_dt$metric_se)
@@ -50,7 +58,7 @@ figure <- ggplot(
       linewidth = 0.4
   ) +
   geom_point(position = dodge, size = 2) +
-  facet_grid(test_subset ~ train_size_label) +
+  facet_grid(test_subset ~ sample_size) +
   coord_flip() +
   scale_color_manual(values = subset_colors, breaks = c("same", "other")) +
   scale_y_continuous(
