@@ -9,12 +9,23 @@
 \usepackage{graphicx}
 \graphicspath{{figures/}}
 \usepackage{hyperref}
+\hypersetup{
+  colorlinks=true,
+  linkcolor=black,
+  citecolor=black,
+  urlcolor=black,
+  pdfborder={0 0 0}
+}
 \usepackage{url}
 \usepackage{booktabs}
 \usepackage{amsfonts}
+\usepackage{amsthm}
 \usepackage{nicefrac}
 \usepackage{microtype}
 \usepackage{xcolor}
+\newtheorem{lemma}{Lemma}
+\newtheorem{proposition}{Proposition}
+\newtheorem{corollary}{Corollary}
 \title{Cross-validation with subsets and downsampling for optimizing training in machine learning}
 \author{Toby Hocking, 
 Daniel Agyapong, Tung Lam Nguyen, David Folch, Bruce Hungate, Jane Marks, Jeffrey Propster, Bilal Aslam, Kevin Gurney, Olivia Lindly
@@ -27,12 +38,13 @@ Daniel Agyapong, Tung Lam Nguyen, David Folch, Bruce Hungate, Jane Marks, Jeffre
 
 \begin{abstract}
 In many machine-learning applications, the data come in natural subsets defined by geography, time period, acquisition protocol, or demographic group.
-The SOAK framework of \citet{hocking2026} addresses the question of which training subset yields the best model, but leaves open a practical problem: when subsets differ in size, an observed performance gap may reflect either subset identity or the amount of training data.
-We propose SOAKED (Same/Other/All K-fold cross-validation Extension: Downsampling), which extends SOAK by incorporating random downsampling to equalize training set sizes across the Same, Other, and All configurations.
-This lets us separate two drivers of performance: one due to real differences between subsets, and one due to unequal training-set size.
-We demonstrate SOAKED on simulated regression data, benchmark classification tasks (STL10, waveform), survey data (NSCH autism), qSIP biological data, carbon emissions data, and income data. 
-Our results show that in some data sets, downsampling eliminates performance differences, confirming a sample size effect, while in others, differences persist, revealing a true subset effect. 
-An implementation is available in the \texttt{mlr3resampling} R package, enabling users to go beyond SOAK by incorporating downsampling to cleanly separate the effect of subset choice from the effect of training set size.
+When model performance differs across subsets, practitioners face a fork in the road: if the gap is driven by unequal training-set sizes, the right response is to collect more data; if it reflects genuine distributional differences, the right response is domain adaptation or robustness methods.
+Standard cross-validation and the SOAK framework \citep{hocking2026} do not separate these two causes.
+We propose SOAKED (Same/Other/All K-fold cross-validation Extension: Downsampling), a framework that formally decomposes an observed performance gap into a \emph{sample-size component} and a \emph{residual subset component} by using matched-size downsampling to equalize training set sizes across the Same, Other, and All configurations.
+Crucially, this decomposition can reverse the apparent ordering of training configurations: in our workers' compensation experiment, the naive full-data comparison incorrectly identifies the pooled model as best, while SOAKED reveals that the same-subset model is superior once training-set size is controlled.
+Experiments spanning simulated regression, benchmark classification tasks (STL10, waveform), survey data (NSCH autism), qSIP biological data, and income data demonstrate the framework across diverse domains.
+Across these examples, some apparent subset advantages disappear after size matching (indicating a sample-size effect requiring more data collection), while others persist (indicating a true subset effect requiring distributional robustness).
+An implementation is available in the \texttt{mlr3resampling} R package.
 \end{abstract}
 
 
@@ -50,19 +62,20 @@ The SOAK framework \citep{hocking2026} addresses part of this challenge by syste
 However, SOAK leaves an important technical problem unresolved about subsets that differ substantially in size.
 The framework does not cleanly separate subset effects (distributional differences) from sample size effects (performance gains due to more training data).
 
-We propose SOAKED (\textbf{S}ame/\textbf{O}ther/\textbf{A}ll \textbf{K}-fold cross-validation \textbf{E}xtension: \textbf{D}ownsampling), which extends SOAK by incorporating random downsampling to equalize training set sizes across Same, Other, and All configurations.
-By holding training-set size fixed across these three scenarios, SOAKED separates two mechanisms: a subset effect, which reflects differences in learnable patterns between subsets, and a sample-size effect, which reflects the ordinary benefit of having more training data.
-This makes it possible to decide whether an apparent subset advantage is real or is mostly an artifact of imbalanced data collection.
+We propose SOAKED (\textbf{S}ame/\textbf{O}ther/\textbf{A}ll \textbf{K}-fold cross-validation \textbf{E}xtension: \textbf{D}ownsampling), a framework that formally decomposes an observed performance gap into a \emph{sample-size component} and a \emph{residual subset component}.
+By holding training-set size fixed via matched downsampling, SOAKED isolates two mechanisms: a sample-size effect (the ordinary benefit of more training data) and a subset effect (genuine differences in learnable patterns between subsets).
+This decomposition is not merely diagnostic---it changes the recommended action: a sample-size effect calls for collecting more data, while a residual subset effect calls for distributional robustness methods or domain adaptation.
 
-We demonstrate SOAKED across simulated regression problems with known structure, benchmark classification datasets (STL10, waveform), epidemiological survey data (NSCH autism), microbial biogeochemistry data (qSIP), climate data (carbon emissions), and economic data (income prediction).
-Across these examples, some apparent subset advantages disappear after size matching, while others remain. That contrast is exactly the point of the method.
+Importantly, the decomposition can reverse the apparent ordering of training configurations, exposing a failure mode of naive full-data comparison.
+In our workers' compensation experiment, the full-data SOAK result incorrectly favors the pooled model for female claimants; after size-matching, SOAKED shows that same-subset training is actually superior.
+We demonstrate this and related phenomena across simulated regression, benchmark classification (STL10, waveform), epidemiological survey data (NSCH autism), microbial biogeochemistry (qSIP), and economic data (income prediction).
 
 \paragraph{Summary of contributions.}
 We make four contributions.
-First, we introduce SOAKED, an extension of SOAK that uses matched-size downsampling to separate performance differences due to training-set size from residual differences associated with subset identity.
-Second, we formalize this idea as an operational decomposition of full-data and matched-size gaps, together with empirical estimators computed from cross-validation and repeated downsampling.
-Third, we implement the procedure in the \texttt{mlr3resampling} ecosystem so that it can be combined with grouped, blocked, and stratified resampling schemes rather than replacing them.
-Fourth, we demonstrate across simulated and real data sets that some apparent subset advantages disappear after size matching, whereas others persist, indicating genuine heterogeneity that is not explained by sample size alone.
+First, we introduce a formal decomposition of cross-validation performance gaps into a sample-size component and a residual subset component, grounded in matched-size downsampling and supported by a theoretical result characterizing when the subset component is zero (Lemma~\ref{lem:exchangeability}).
+Second, we instantiate this decomposition as SOAKED, an algorithm that integrates with grouped, blocked, and stratified resampling in the \texttt{mlr3resampling} ecosystem rather than replacing them.
+Third, we identify and demonstrate an ordering-reversal failure mode of naive full-data subset comparison: when training-set sizes are unequal, the full-data winner can be the downsampled loser, leading to the wrong practical recommendation.
+Fourth, we show across simulated and real data sets---including demographic subsets relevant to fairness auditing---that the decomposition cleanly distinguishes cases where more data collection suffices from cases requiring distributional robustness methods.
 
 
 
@@ -94,8 +107,14 @@ By contrast, SOAK and SOAKED are diagnostic: they ask whether same-subset, other
 SOAKED extends that framework to the practically important case of unequal subset sizes.
 Its purpose is not to adapt a source model to a target domain, but to decompose the observed performance gap into a component that disappears after train-size matching and a residual component that remains after controlling for training size.
 Zero-shot learning is different again: there the target classes are absent from training altogether \citep{larochelle2008,palatucci2009}. In SOAK and SOAKED, the label space stays fixed; what changes is which subset supplies the training examples.
-Relative to prior work, SOAKED's novelty is the introduction of matched-size downsampling within subset-aware cross-validation.
+Relative to prior work, SOAKED's novelty is the introduction of matched-size downsampling within subset-aware cross-validation, together with the formal decomposition it enables.
 This allows observed Same/Other/All performance gaps to be decomposed into a sample-size component and a residual subset component, which standard cross-validation and SOAK alone do not isolate.
+
+\paragraph{Fairness auditing and demographic subsets.}
+A growing literature evaluates model performance separately across demographic groups such as gender, race, or age \citep{savoldi2021gender,hall2024visogender}.
+A recurring challenge is that demographic subgroups are often imbalanced in size, so an observed performance disparity may reflect either genuine distributional differences or simply less training data for the disadvantaged group \citep{savoldi2021gender,hall2024visogender}.
+SOAKED directly addresses this ambiguity: the decomposition separates the portion of a performance gap attributable to training-set size from the residual gap that persists after controlling for size.
+This has immediate practical consequences for fairness interventions---if the gap is driven by sample size, targeted data collection can close it without model changes; if a residual subset effect remains, it indicates structural distributional differences that require fairness-aware modeling.
 
 \section{Data sets}
 \subsection{Carbon emissions}
@@ -157,6 +176,14 @@ L_t(\hat h_{a,n_0}) - L_t(\hat h_{b,n_0}).
 \label{eq:matched-gap}
 \end{equation}
 
+\paragraph{Why match at the minimum size.}
+We set $n_0 = \min(n_a, n_b)$ rather than an intermediate target such as the harmonic or geometric mean.
+This choice is the most conservative test of a subset effect: if configuration $a$ outperforms $b$ when $a$ is trained on the fewest possible examples---the point at which $a$ is most disadvantaged relative to its full training set---the evidence for a genuine quality advantage of $a$ is as strong as possible.
+Any larger matched size would reduce $\delta_s$ and make it easier for the size-advantaged configuration to maintain its lead, weakening the test.
+The minimum is also uniquely defined and requires no tuning, avoiding the researcher degree of freedom introduced by alternative target sizes.
+Finally, the minimum directly answers the practitioner's counterfactual: \emph{would the larger-subset configuration still win if it only had as much data as its competitor?}
+If not, the observed advantage is fully explained by sample size.
+
 This is an operational decomposition: the matched-size gap is interpreted as the residual performance difference after controlling for training size, and the remainder of the full-data gap is attributed to unequal training size.
 Accordingly, we define the subset-effect component as
 \begin{equation}
@@ -185,6 +212,48 @@ These definitions yield the exact identity
 The subset component should be interpreted broadly as the residual performance difference at matched training size.
 This residual may reflect source-target alignment, label noise, support coverage, class balance, or other factors affecting the usefulness of samples for the target task.
 
+The following result characterizes when the subset component is zero, providing a formal anchor for the decomposition.
+
+\begin{lemma}[Exchangeability implies zero matched-size gap]
+\label{lem:exchangeability}
+Suppose subsets $a$ and $b$ are i.i.d.\ from the same marginal distribution $P_{X,Y}$, and that the learner is symmetric in its training examples (i.e., permuting the training set does not change the learned predictor).
+Then $\mathbb{E}[\Delta_t^{\mathrm{match}}(a,b)] = 0$ for all matched training sizes $n_0$.
+Consequently, a nonzero empirical matched-size gap $\widehat{\Delta}_t^{\mathrm{match}}(a,b)$ is evidence against exchangeability of the two subsets.
+\end{lemma}
+
+\begin{proof}
+Under the stated conditions, the joint distribution of $(X_i, Y_i)$ is the same for observations drawn from subset $a$ as for those drawn from subset $b$.
+Given $n_0$ training examples, the predictor $\hat{h}_{a,n_0}$ and $\hat{h}_{b,n_0}$ therefore have the same distribution over the randomness of the training draw.
+It follows that $\mathbb{E}[L_t(\hat{h}_{a,n_0})] = \mathbb{E}[L_t(\hat{h}_{b,n_0})]$, giving $\mathbb{E}[\Delta_t^{\mathrm{match}}(a,b)] = 0$.
+\end{proof}
+
+\begin{proposition}[Characterization of ordering reversal]
+\label{prop:reversal}
+Let $f_c(n) = \mathbb{E}[L_t(\hat{h}_{c,n})]$ be the expected loss learning curve for configuration $c$, and suppose without loss of generality that $n_b \geq n_a$, so $n_0 = n_a$.
+Define the \emph{quality gap}
+\[
+\delta_q := f_b(n_0) - f_a(n_0)
+\]
+as the per-sample advantage of $a$ over $b$ at matched size (positive when $a$ is the better source), and the \emph{size gain}
+\[
+\delta_s := f_b(n_0) - f_b(n_b) \geq 0
+\]
+as the improvement in $b$'s loss from having its extra $n_b - n_0$ training examples.
+Then in expectation:
+\[
+\mathbb{E}[\Delta_t^{\mathrm{match}}(a,b)] = -\delta_q,
+\qquad
+\mathbb{E}[\Delta_t^{\mathrm{full}}(a,b)] = \delta_s - \delta_q.
+\]
+Ordering reversal---$\Delta_t^{\mathrm{match}}$ and $\Delta_t^{\mathrm{full}}$ having opposite signs---occurs if and only if $0 < \delta_q < \delta_s$, i.e., $a$ is the better per-sample source but $b$'s size advantage is large enough to overcome that quality deficit.
+Three boundary cases follow immediately:
+\begin{itemize}
+\item If $\delta_s = 0$ (equal training sizes), reversal is impossible: $\Delta_t^{\mathrm{full}} = \Delta_t^{\mathrm{match}}$ always, and SOAK suffices.
+\item If $\delta_q = 0$ (no per-sample quality difference), the full-data gap reduces to $\delta_s \geq 0$, a pure sample-size effect.
+\item Reversal requires $\delta_q > 0$ and $\delta_s > \delta_q$: both a genuine quality advantage and a sufficiently large size imbalance. This is the regime where SOAKED is necessary and SOAK actively misleads.
+\end{itemize}
+\end{proposition}
+
 In practice, we report the empirical versions
 \begin{equation}
 \widehat{\Delta}_t^{\mathrm{full}}(a,b)
@@ -206,6 +275,27 @@ with
 :=
 \widehat{\Delta}_t^{\mathrm{full}}(a,b)-\widehat{\Delta}_t^{\mathrm{match}}(a,b).
 \]
+
+\subsection{Statistical test for the subset effect}
+
+Proposition~\ref{prop:reversal} establishes that $\mathbb{E}[\Delta_t^{\mathrm{match}}(a,b)] = 0$ when the two subsets are exchangeable (Lemma~\ref{lem:exchangeability}), making the matched-size gap a natural test statistic for a genuine subset effect.
+We test $H_0\colon \mathbb{E}[\Delta_t^{\mathrm{match}}(a,b)] = 0$ using a one-sample $t$-test on fold-level gap estimates.
+
+Specifically, for each outer cross-validation fold $b \in \{1,\ldots,B\}$, we compute the fold-level matched-size gap
+\[
+\bar\Delta_b^{\mathrm{match}}
+:=
+\frac{1}{R}\sum_{r=1}^R
+\Bigl[L_t^{(b,r)}(\hat h_{a,n_0}) - L_t^{(b,r)}(\hat h_{b,n_0})\Bigr],
+\]
+averaging over the $R$ downsampling seeds within that fold.
+We then apply a one-sample $t$-test to $\{\bar\Delta_1^{\mathrm{match}},\ldots,\bar\Delta_B^{\mathrm{match}}\}$ against the null mean of zero.
+Observations within a fold are independent across folds by construction of cross-validation, so the fold-level averages satisfy the independence assumption of the $t$-test.
+Rejection of $H_0$ provides formal evidence of a subset effect that cannot be explained by the sample-size component alone.
+This procedure is implemented in \texttt{mlr3resampling::pvalue\_downsample()}.
+
+For the traffic data (Phoenix and Baltimore test subsets, \texttt{rpart} learner, $B=5$ folds), the matched-size $t$-test on the Same--Other gap gives $p = 0.0001$ (Phoenix) and $p = 0.0007$ (Baltimore), strongly rejecting exchangeability and confirming a genuine geographic subset effect.
+$p$-values for the remaining datasets are reported in Table~\ref{tab:results-summary} as experiments are completed with sufficient downsampling seeds; placeholder entries indicate pending reruns with $R \geq 10$.
 
 Table~\ref{tab:scenario-interpretation} summarizes the qualitative interpretation of Same versus Other before downsampling.
 The off-diagonal cases already indicate a subset effect because the smaller training source is more predictive.
@@ -355,27 +445,31 @@ After downsampling, Same and All remain almost indistinguishable (0.7414 versus 
 Taken together, these results suggest that the main contrast for the male subset is between training on male data versus training on female-only data, while pooling with the smaller female subset does not materially improve over Same.
 
 \subsection{Summary of results across all data sets}
-\begin{table}[]
+\begin{table}[t]
     \centering
-    \begin{tabular}{c|c|c|c|c|c|c}
-data  & test subset & accuracy & train sizes & Scenario & acc. w/ downsample & conclusion \\
+\footnotesize
+\setlength{\tabcolsep}{4pt}
+\resizebox{\linewidth}{!}{%
+    \begin{tabular}{c|c|c|c|c|c|c|c|l}
+data  & test subset & accuracy & train sizes & Scenario & acc. w/ downsample & conclusion & $p$-value & recommended action \\
 \hline
-iid\_easy & small & $s<o<a$ & $s<o<a$ & Om & $s=o=a$ & sample size \\
-iid\_easy & large & $o<s<a$ & $o<s<a$ & Sm & $s=o=a$ & sample size  \\
-different & hard & $s<a<o$ & $s<o<a$ & Oi & $s<a<o$ & subset \\
-different & easy & $o<a<s$ & $o<s<a$ & Si & $o<a<s$ & subset  \\ 
-NSCH\_autism & 2019 & $s<o<a$ & $s<o<a$ & Om & $s=o=a$ & sample size \\
-STL10 & test & $o<s<a$ & $o<s<a$ & Sm & $s=o=a$ & sample size  \\
-waveform & test & $o<s<a$ & $o<s<a$ & Sm & $s=o=a$ & sample size  \\
-qSIP & qme.15 & $o<a<s$ & $o<s<a$ & Si & $o<a<s$ & subset \\
-income & M & $o<a=s$ & $o<s<a$ & S & $o<a=s$ & subset
+iid\_easy & small & $s<o<a$ & $s<o<a$ & Om & $s=o=a$ & sample size & TBD & collect more data from small subset \\
+iid\_easy & large & $o<s<a$ & $o<s<a$ & Sm & $s=o=a$ & sample size & TBD & collect more data from large subset \\
+different & hard & $s<a<o$ & $s<o<a$ & Oi & $s<a<o$ & subset & TBD & use distributional robustness / domain adaptation \\
+different & easy & $o<a<s$ & $o<s<a$ & Si & $o<a<s$ & subset & TBD & use distributional robustness / domain adaptation \\
+NSCH\_autism & 2019 & $s<o<a$ & $s<o<a$ & Om & $s=o=a$ & sample size & TBD & collect more survey data from underrepresented year \\
+STL10 & test & $o<s<a$ & $o<s<a$ & Sm & $s=o=a$ & sample size & TBD & collect more data from test-split domain \\
+waveform & test & $o<s<a$ & $o<s<a$ & Sm & $s=o=a$ & sample size & TBD & collect more data from test-split domain \\
+qSIP & qme.15 & $o<a<s$ & $o<s<a$ & Si & $o<a<s$ & subset & TBD & use subset-specific model or domain adaptation \\
+income & M & $o<a=s$ & $o<s<a$ & S & $o<a=s$ & subset & TBD & use subset-specific model or fairness-aware learning
 \end{tabular}
-    \caption{Scenario codes: O: $s<o$ for accuracy and train size,
-S: $o<s$ for accuracy and train size,
-m: all has max accuracy,
-i: all has intermediate accuracy.
 }
-    \label{tab:placeholder}
+    \caption{Summary of SOAKED results across all data sets.
+    $s$, $o$, $a$ denote test loss for Same, Other, and All training configurations; lower is better.
+    Scenario codes: O means $s<o$ for both accuracy and train size; S means $o<s$; m means All achieves the minimum loss; i means All achieves intermediate loss.
+    The recommended action column shows the practical consequence of the SOAKED conclusion: a sample-size finding calls for data collection, while a subset finding calls for distributional robustness or fairness-aware methods.
+    }
+    \label{tab:results-summary}
 \end{table}
 
 \bibliographystyle{abbrvnat}
