@@ -5,6 +5,8 @@ run_torch_mlp_benchmark <- function(dt, feature_names, target_name, iteration_dt
   torch_device_name <- if (torch::backends_mps_is_available()) "mps" else "cpu"
   torch_device_obj <- torch::torch_device(torch_device_name)
   batch_size <- 16384L
+  max_epochs <- 80L
+  early_stop_patience <- 10L
   make_scaled_tensors <- function(row_ids, x_center, x_scale, y_center = NULL, y_scale = NULL) {
     x_scaled <- scale(x_mat[row_ids, , drop = FALSE], center = x_center, scale = x_scale)
     x_tensor <- torch_tensor(x_scaled, dtype = torch_float(), device = torch_device_obj)
@@ -96,7 +98,7 @@ run_torch_mlp_benchmark <- function(dt, feature_names, target_name, iteration_dt
         candidate_best_epoch <- 1L
         patience <- 0L
 
-        for (epoch in seq_len(40L)) {
+        for (epoch in seq_len(max_epochs)) {
           train_epoch(model, optimizer, train_tensors$x, train_tensors$y)
 
           model$eval()
@@ -110,7 +112,7 @@ run_torch_mlp_benchmark <- function(dt, feature_names, target_name, iteration_dt
           } else {
             patience <- patience + 1L
           }
-          if (patience >= 5L) {
+          if (patience >= early_stop_patience) {
             break
           }
         }
