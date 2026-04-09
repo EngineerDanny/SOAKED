@@ -32,5 +32,5 @@ combined_plot <- (robustness_plot / time_plot) +
     legend.position = "bottom"
   )
 
-ggsave(output_png, combined_plot, width = 15, height = 6.5, dpi = 300, bg = "white")
+ggsave(output_png, combined_plot, width = 13.5, height = 6.5, dpi = 300, bg = "white")
 file.copy(output_png, paper_png, overwrite = TRUE)
