@@ -73,7 +73,7 @@ figure <- ggplot() +
   ) +
   labs(
     x = "Train time (s, log10 scale)",
-    y = NULL
+    y = "Learner"
   ) +
   theme_bw()
 
