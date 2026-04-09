@@ -27,10 +27,10 @@ time_plot <- time_env$figure +
   )
 
 combined_plot <- (robustness_plot / time_plot) +
-  plot_layout(heights = c(1.7, 1.4), guides = "collect") &
+  plot_layout(heights = c(1.45, 1.4), guides = "collect") &
   theme(
     legend.position = "bottom"
   )
 
-ggsave(output_png, combined_plot, width = 15, height = 6.8, dpi = 300, bg = "white")
+ggsave(output_png, combined_plot, width = 15, height = 6.5, dpi = 300, bg = "white")
 file.copy(output_png, paper_png, overwrite = TRUE)
