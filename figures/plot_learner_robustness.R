@@ -22,6 +22,7 @@ plot_dt <- rbindlist(list(
 
 learner_labels <- c(
   featureless = "Featureless",
+  rpart = "rpart",
   glmnet = "glmnet"
 )
 plot_dt[, learner := factor(learner, levels = names(learner_labels), labels = unname(learner_labels))]

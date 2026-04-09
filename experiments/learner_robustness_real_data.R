@@ -49,9 +49,10 @@ soak$param_set$values$seeds <- seeds
 soak$param_set$values$sizes <- 0L
 
 featureless <- mlr3::LearnerRegrFeatureless$new()
+rpart <- mlr3::lrn("regr.rpart")
 glmnet <- mlr3learners::LearnerRegrCVGlmnet$new()
 glmnet$param_set$values$nfolds <- 5L
-reg.learner.list <- list(featureless = featureless, glmnet = glmnet)
+reg.learner.list <- list(featureless = featureless, rpart = rpart, glmnet = glmnet)
 
 bench.grid <- mlr3::benchmark_grid(task, reg.learner.list, soak)
 bench.result <- mlr3::benchmark(bench.grid)
