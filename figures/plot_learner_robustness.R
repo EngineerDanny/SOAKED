@@ -28,26 +28,10 @@ plot_dt[, train_size_label := factor(
   levels = paste0("Train groups: ", sort(unique(n_train_groups)))
 )]
 
-time_dt <- dcast(
-  plot_dt,
-  learner + test_subset + train_size_label ~ train_subsets,
-  value.var = "train_seconds_mean"
-)
-time_dt[, time_label := sprintf("time: %.02f / %.02f s", same, other)]
-
 x_min <- min(plot_dt$metric_mean - plot_dt$metric_se)
 x_max <- max(plot_dt$metric_mean + plot_dt$metric_se)
 x_range <- x_max - x_min
-text_x <- x_max + 0.12 * x_range
-x_upper <- x_max + 0.40 * x_range
-
-plot_dt <- merge(
-  plot_dt,
-  time_dt[, .(learner, test_subset, train_size_label, time_label)],
-  by = c("learner", "test_subset", "train_size_label"),
-  all.x = TRUE
-)
-label_dt <- unique(plot_dt[, .(learner, test_subset, train_size_label, time_label)])
+x_upper <- x_max + 0.05 * x_range
 
 subset_colors <- c(same = "red", other = "blue")
 dodge <- position_dodge(width = 0.6)
@@ -62,18 +46,10 @@ figure <- ggplot(
       ymax = metric_mean + metric_se
     ),
     position = dodge,
-    width = 0.2,
-    linewidth = 0.4
+      width = 0.2,
+      linewidth = 0.4
   ) +
   geom_point(position = dodge, size = 2) +
-  geom_text(
-    data = label_dt,
-    aes(x = learner, y = text_x, label = time_label),
-    inherit.aes = FALSE,
-    color = "gray35",
-    hjust = 0,
-    size = 3
-  ) +
   facet_grid(test_subset ~ train_size_label) +
   coord_flip() +
   scale_color_manual(values = subset_colors, breaks = c("same", "other")) +
@@ -84,15 +60,13 @@ figure <- ggplot(
   labs(
     x = NULL,
     y = unique(plot_dt$metric_label),
-    color = NULL,
-    caption = "Gray labels show mean training seconds for same / other."
+    color = NULL
   ) +
   theme_bw() +
   theme(
     legend.position = "bottom",
     strip.background = element_rect(fill = "gray15"),
-    strip.text = element_text(color = "white", face = "bold"),
-    plot.caption = element_text(hjust = 0)
+    strip.text = element_text(color = "white", face = "bold")
   )
 
 ggsave(output_png, figure, width = 11, height = 6.5, dpi = 300, bg = "white")

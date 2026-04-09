@@ -95,14 +95,14 @@ make_resampling <- function() {
   resampling
 }
 
-run_learner <- function(learner_name) {
+raw_dt <- rbindlist(lapply(learner_filter, function(learner_name) {
   learner_spec <- make_learner_spec(learner_name)
   message(sprintf("  learner: %s", learner_spec$label))
   rr <- resample(
     task,
     learner_spec$learner,
     make_resampling(),
-    store_models = TRUE
+    store_models = FALSE
   )
   score_dt <- as.data.table(rr$score(metric))[, .(
     iteration,
@@ -116,12 +116,7 @@ run_learner <- function(learner_name) {
     fold = test.fold,
     seed
   )]
-  timing_dt <- data.table(
-    iteration = seq_along(rr$learners),
-    train_seconds = vapply(rr$learners, function(x) x$timings[["train"]], numeric(1))
-  )
   raw_dt <- merge(score_dt, iteration_dt, by = "iteration")
-  raw_dt <- merge(raw_dt, timing_dt, by = "iteration")
   raw_dt[, `:=`(
     dataset_id = "traffic_aadt",
     dataset_label = "Traffic AADT",
@@ -141,19 +136,13 @@ run_learner <- function(learner_name) {
     "fold",
     "seed",
     "iteration",
-    "metric_value",
-    "train_seconds"
+    "metric_value"
   ))
   raw_dt
-}
-
-raw_dt <- rbindlist(lapply(learner_filter, run_learner), use.names = TRUE)
+}), use.names = TRUE)
 summary_dt <- raw_dt[, .(
   metric_mean = mean(metric_value),
   metric_se = sd(metric_value) / sqrt(.N),
-  train_seconds_mean = mean(train_seconds),
-  train_seconds_se = sd(train_seconds) / sqrt(.N),
-  train_seconds_total = sum(train_seconds),
   n_runs = .N
 ), by = .(
   dataset_id,
