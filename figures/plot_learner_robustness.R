@@ -65,6 +65,7 @@ x_lower <- x_min - 0.16 * x_range
 x_upper <- x_max + 0.20 * x_range
 
 subset_colors <- c(same = "red", other = "blue")
+subset_labels <- c(same = "Same", other = "Other")
 dodge <- position_dodge2(width = 0.6, reverse = TRUE)
 
 pvalue_dt <- raw_dt[, {
@@ -106,7 +107,8 @@ figure <- ggplot(
       ymax = metric_mean + metric_se
     ),
     position = dodge,
-    linewidth = 0.4
+    linewidth = 0.4,
+    show.legend = FALSE
   ) +
   geom_point(
     aes(fill = train_subsets),
@@ -140,7 +142,20 @@ figure <- ggplot(
   ) +
   facet_grid(test_subset ~ sample_size) +
   coord_flip() +
-  scale_color_manual(values = subset_colors, breaks = c("same", "other")) +
+  scale_color_manual(
+    values = subset_colors,
+    breaks = c("same", "other"),
+    labels = subset_labels,
+    guide = guide_legend(
+      override.aes = list(
+        shape = 21,
+        fill = "white",
+        linewidth = 0,
+        size = 2.5,
+        stroke = 0.8
+      )
+    )
+  ) +
   scale_fill_manual(values = c(same = "white", other = "white"), guide = "none") +
   scale_y_continuous(
     limits = c(x_lower, x_upper),
