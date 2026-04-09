@@ -1,7 +1,7 @@
 run_torch_mlp_benchmark <- function(dt, feature_names, target_name, iteration_dt) {
   x_mat <- as.matrix(dt[, ..feature_names])
   y_vec <- dt[[target_name]]
-  learning_rates <- c(1e-2, 3e-3, 1e-3)
+  learning_rates <- c(3e-2, 1e-2, 5e-3, 3e-3, 1e-3, 5e-4, 3e-4, 1e-4)
   torch_device_name <- if (torch::backends_mps_is_available()) "mps" else "cpu"
   torch_device_obj <- torch::torch_device(torch_device_name)
 
@@ -10,10 +10,8 @@ run_torch_mlp_benchmark <- function(dt, feature_names, target_name, iteration_dt
       self$net <- nn_sequential(
         nn_linear(input_dim, 32),
         nn_relu(),
-        nn_dropout(0.10),
         nn_linear(32, 16),
         nn_relu(),
-        nn_dropout(0.10),
         nn_linear(16, 1)
       )
     },
