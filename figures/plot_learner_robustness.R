@@ -196,5 +196,5 @@ figure <- ggplot(
     strip.text = element_text(color = "white", face = "bold")
   )
 
-ggsave(output_png, figure, width = 11, height = 6.5, dpi = 300, bg = "white")
+ggsave(output_png, figure, width = 13.5, height = 6.5, dpi = 300, bg = "white")
 file.copy(output_png, paper_png, overwrite = TRUE)
