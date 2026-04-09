@@ -33,6 +33,7 @@ learner_labels <- c(
   featureless = "Featureless",
   rpart = "rpart",
   glmnet = "glmnet",
+  nnet = "Neural network",
   random_forest = "Random forest"
 )
 plot_dt[, learner := factor(learner, levels = names(learner_labels), labels = unname(learner_labels))]

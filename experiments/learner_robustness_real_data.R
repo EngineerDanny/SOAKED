@@ -54,12 +54,20 @@ featureless <- mlr3::LearnerRegrFeatureless$new()
 rpart <- mlr3::lrn("regr.rpart")
 random_forest <- mlr3::lrn("regr.ranger", num.trees = 10L)
 glmnet <- mlr3learners::LearnerRegrCVGlmnet$new()
+nnet <- mlr3::lrn(
+  "regr.nnet",
+  size = 3L,
+  decay = 1e-3,
+  trace = FALSE,
+  maxit = 100L
+)
 glmnet$param_set$values$nfolds <- 5L
 reg.learner.list <- list(
   featureless = featureless,
   rpart = rpart,
-  random_forest = random_forest,
-  glmnet = glmnet
+  glmnet = glmnet,
+  nnet = nnet,
+  random_forest = random_forest
 )
 
 bench.grid <- mlr3::benchmark_grid(task, reg.learner.list, soak)
