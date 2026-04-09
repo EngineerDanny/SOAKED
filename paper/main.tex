@@ -62,47 +62,23 @@ Our empirical findings reveal substantial heterogeneity: in some datasets, downs
 
 \section{Related work}
 
-\subsection{Internal and External validation}
-% To summarize, internal holdout data would come from a sequestered portion of the original dataset, while the external validation data would come from a different data source/population.
- 
-% Internal Validation
-	
-% Evaluation of model or analytic performance within the original dataset using resampling or partitioning methods (e.g., cross-validation, bootstrapping)18,19.
-	
-% A model is internally validated if its performance remains stable using samples within the development dataset.
+\subsection{Cross-validation and model validation}
+Cross-validation is a standard tool for model assessment and model selection \citep{stone1974cross,geisser1975predictive,Arl_Cel:2010:surveyCV}.
+In applied prediction modeling, it is often used as a form of internal validation, whereas external validation evaluates a model on data from a different source population or cohort \citep{steyerberg2019,collins2015tripod}.
+SOAKED is still an internal validation procedure in this sense, but it targets a more specific question: when data contain natural subsets, how much of an observed performance gap is due to the identity of the training subset versus the amount of training data available from that subset?
 
-% External Validation 
-	
-% Testing a model on a sample taken from a population different than the original cohort to determine whether the model works to a satisfactory degree18,19.
-	
-% A model is externally validated if it is consistent in a similar study conducted using samples from a different population.
+\subsection{Structured and blocked resampling}
+When observations are spatially, temporally, or hierarchically dependent, naive row-wise cross-validation can be overly optimistic because nearby or related observations leak information across folds \citep{roberts2017}.
+This issue is especially important in ecological and geospatial applications, where one often needs to hold out whole regions, fields, or polygons rather than individual rows.
+\citet{brenning2005} described this distinction as intra-domain versus extra-domain prediction.
+More recently, packages such as \texttt{blockCV} \citep{valavi2019} and \texttt{mlr3spatiotempcv} \citep{schratz2024} have made blocked, grouped, and spatiotemporal resampling easier to use in practice.
+SOAK and SOAKED are complementary to these ideas: they assume that meaningful subset labels already exist, then compare Same, Other, and All training configurations while respecting any additional grouping constraints in the resampling design.
 
-
-% We are definitely at least doing internal validation.
-
-% I’m not sure if we are doing external validation. It depends on the definition of "different data source/population."
-% We have two different years of data from National Survey of Children’s Health.
-% Those are two different data files, with two different groups of people surveyed.
-% (but both groups of people are supposed to be representative of the overall USA population)
-% Is that an example of External Validation? or not?
-
-
-\subsection{Spatio-temporal cross-validation}
-
-The mlr3spatiotempcv R package provides an interface to a variety of different cross-validation methods, all of which require data spatial coordinates \citep{schratz2024}.
-It discusses an example involving crop classification from satellite data, with 100 fields (each containing 20 grid cells) spread over several geographical regions.
-It is desirable to hold out data at the level of fields, not grid cells (so field would be assigned column role group in mlr3).
-SOAK can be used here by assigning subset role to a categorical column representing a geographical region ID, and by assigning group role to a column with the field ID.
-In this context, \citet{brenning2005} refers to SOAK subsets as ``domains,'' so the SOAK Other model is ``extra-domain prediction'' whereas the Same model is ``intra-domain prediction.''
-In mlr3spatiotempcv the term ``block'' is used for a contiguous spatial area, typically used as column role group (data in a group/block are not split in CV).
-The blockCV R package provides several algorithms (blocking, clustering, etc.) for creating fold IDs based on spatial coordinates \citep{valavi2019}, when the data do not already have pre-defined group/block IDs like field in the satellite data example.
-
-\begin{tabular}{cccc}
-problem & rows & group & subset \\
-\hline
-crop classification & grid cells & fields & region \\
-tree classification & pixels & polygons & region
-\end{tabular}
+\subsection{Distribution shift and transfer across subsets}
+The broader machine-learning literature studies train-test mismatch under the names transfer learning and domain adaptation \citep{pan2010transfer,Farahani2021}.
+These methods aim to improve prediction under distribution shift by reweighting observations, learning invariant representations, or otherwise adapting a source model to a target domain.
+SOAK \citep{hocking2026} addresses a different problem: it provides a cross-validation-based diagnostic for whether Same, Other, or All training subsets give the best predictions on a fixed target subset.
+SOAKED extends that framework by introducing matched-size downsampling, which makes it possible to separate residual subset-related differences from advantages that arise simply because one training configuration contains more examples than another.
 
 \section{Data sets}
 \subsection{Carbon emissions}
