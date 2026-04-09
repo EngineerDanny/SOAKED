@@ -103,7 +103,13 @@ figure <- ggplot(
       width = 0.2,
       linewidth = 0.4
   ) +
-  geom_point(position = dodge, size = 2, shape = 1, stroke = 0.8) +
+  geom_point(
+    aes(fill = train_subsets),
+    position = dodge,
+    size = 2,
+    shape = 21,
+    stroke = 0.8
+  ) +
   geom_text(
     aes(label = text_label),
     position = dodge,
@@ -129,6 +135,7 @@ figure <- ggplot(
   facet_grid(test_subset ~ sample_size) +
   coord_flip() +
   scale_color_manual(values = subset_colors, breaks = c("same", "other")) +
+  scale_fill_manual(values = c(same = "white", other = "white"), guide = "none") +
   scale_y_continuous(
     limits = c(x_lower, x_upper),
     expand = expansion(mult = c(0.02, 0.02))
