@@ -14,6 +14,7 @@ folds <- 5L
 seeds <- 1L
 raw_output <- file.path(repo_root, "results", "learner_robustness_runs.csv")
 summary_output <- file.path(repo_root, "results", "learner_robustness_summary.csv")
+time_runs_output <- file.path(repo_root, "results", "learner_train_time_runs.csv")
 time_output <- file.path(repo_root, "results", "learner_train_time_summary.csv")
 
 dir.create(dirname(raw_output), recursive = TRUE, showWarnings = FALSE)
@@ -113,4 +114,5 @@ time_dt <- raw_dt[, .(
 
 fwrite(raw_dt, raw_output)
 fwrite(summary_dt, summary_output)
+fwrite(timing_dt, time_runs_output)
 fwrite(time_dt, time_output)
