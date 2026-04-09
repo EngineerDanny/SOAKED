@@ -89,6 +89,12 @@ pvalue_dt[, y_start := pmin(same, other)]
 pvalue_dt[, y_end := pmax(same, other)]
 pvalue_dt[, x_text := learner_num]
 pvalue_dt[, y_text := (y_start + y_end) / 2]
+pvalue_dt[, left_space := y_start - x_lower]
+pvalue_dt[, right_space := x_upper - y_end]
+pvalue_dt[, label_side := fifelse(right_space > left_space, "right", "left")]
+pvalue_dt[label_side == "right", y_text := y_end + 0.02 * x_range]
+pvalue_dt[label_side == "left", y_text := y_start - 0.02 * x_range]
+pvalue_dt[, hjust_text := fifelse(label_side == "right", 0, 1)]
 
 figure <- ggplot(
   plot_dt,
@@ -128,7 +134,7 @@ figure <- ggplot(
     aes(x = x_text, y = y_text, label = p_label),
     inherit.aes = FALSE,
     color = "gray20",
-    hjust = 0.5,
+    hjust = pvalue_dt$hjust_text,
     vjust = 0.5,
     size = 3
   ) +
