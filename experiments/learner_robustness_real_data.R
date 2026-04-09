@@ -12,16 +12,6 @@ script_arg <- grep("^--file=", commandArgs(), value = TRUE)
 script_path <- normalizePath(sub("^--file=", "", script_arg[[1L]]), mustWork = TRUE)
 repo_root <- normalizePath(file.path(dirname(script_path), ".."), mustWork = TRUE)
 
-sample_preserve_subset_ratio <- function(dt, subset_col, max_rows_largest_subset) {
-  if (is.infinite(max_rows_largest_subset)) {
-    return(copy(dt))
-  }
-  subset_sizes <- dt[, .N, by = subset_col]
-  largest_subset_n <- max(subset_sizes$N)
-  sample_fraction <- min(1, max_rows_largest_subset / largest_subset_n)
-  dt[, .SD[sample.int(.N, max(1L, floor(.N * sample_fraction)))], by = subset_col]
-}
-
 make_learner_spec <- function(learner_name) {
   switch(
     learner_name,
@@ -65,10 +55,9 @@ make_learner_spec <- function(learner_name) {
   )
 }
 
-learner_filter <- c("featureless", "rpart", "glmnet", "random_forest", "dnn")
+learner_filter <- c("featureless", "glmnet")
 folds <- 5L
 seeds <- 1L
-max_rows_largest_subset <- 5000L
 raw_output <- file.path(repo_root, "results", "learner_robustness_runs.csv")
 summary_output <- file.path(repo_root, "results", "learner_robustness_summary.csv")
 
@@ -76,7 +65,6 @@ dir.create(dirname(raw_output), recursive = TRUE, showWarnings = FALSE)
 
 traffic_dt <- fread(file.path(repo_root, "data", "traffic.csv"))
 traffic_dt <- traffic_dt[city_key %in% c("Phoenix", "Baltimore")]
-traffic_dt <- sample_preserve_subset_ratio(traffic_dt, "city_key", max_rows_largest_subset)
 traffic_dt[, subset_id := factor(city_key)]
 traffic_dt[, log_AADT := log(AADT)]
 
@@ -108,7 +96,7 @@ resampling$param_set$values$seeds <- seeds
 resampling$param_set$values$sizes <- 0L
 resampling$instantiate(task)
 
-iteration_dt <- copy(resampling$instance$iteration.dt)
+iteration_dt <- resampling$instance$iteration.dt
 
 for (learner_name in learner_filter) {
   learner_spec <- make_learner_spec(learner_name)

@@ -14,10 +14,7 @@ plot_dt <- plot_dt[train_subsets %in% c("same", "other")]
 
 learner_labels <- c(
   featureless = "Featureless",
-  rpart = "rpart",
-  glmnet = "glmnet",
-  random_forest = "Random forest",
-  dnn = "DNN"
+  glmnet = "glmnet"
 )
 plot_dt[, learner := factor(learner, levels = names(learner_labels), labels = unname(learner_labels))]
 plot_dt[, train_subsets := factor(train_subsets, levels = c("same", "other"))]
