@@ -75,7 +75,7 @@ cases <- list(
   ),
   list(
     case_id = "variance_shift",
-    case_label = "Combined Effect",
+    case_label = "Variance Effect",
     other_name = "B",
     same_name = "A",
     other_df = set_b,

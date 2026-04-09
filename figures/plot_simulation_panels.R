@@ -48,7 +48,7 @@ case_order <- c("same_distribution", "mean_shift", "variance_shift")
 case_label_map <- c(
   same_distribution = "Sample Size Effect",
   mean_shift = "Subset Effect",
-  variance_shift = "Combined Effect"
+  variance_shift = "Variance Effect"
 )
 case_ids_present <- unique(plot_dt$case_id)
 case_ids_present <- case_order[case_order %in% case_ids_present]

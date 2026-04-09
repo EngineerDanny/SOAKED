@@ -158,15 +158,18 @@ Featureless, \texttt{rpart}, and \texttt{glmnet} train in approximately 0.002, 0
 Because the main SOAKED diagnosis is stable across learner families, we use \texttt{rpart} in the remaining experiments as a simple nonlinear default that is far cheaper than random forest or the neural network while still capturing subset-dependent structure.
 
 \subsection{Simulated regression data sets}
-We generated synthetic regression data from a sinusoidal mean function with noise variance that depends on the subset.
+We generated synthetic regression data from a sinusoidal mean function with subset-specific additive offsets and noise levels.
 For each observation in subset $s$, let
 \[
-z_i \sim \mathrm{Unif}(-3\pi,3\pi), \qquad
-x_i = \frac{z_i+3\pi}{6\pi}, \qquad
-y_i = \sin(z_i) + \varepsilon_i,
+y_i = \alpha_s + \sin(x_i) + \varepsilon_i, \qquad
+x_i \sim \mathrm{Unif}(-5,5), \qquad
+\varepsilon_i \sim \mathcal{N}(0,\tau_s^2).
 \]
-with $\varepsilon_i \sim \mathcal{N}(0,\sigma_s^2)$.
-We then applied SOAKED with a regression tree learner (\texttt{rpart}) and report root mean squared error (RMSE) over 10-fold cross-validation.
+Subset A uses $(\alpha_A,\tau_A)=(0,1)$.
+The Sample Size Effect panel compares subset A to an independent replicate A2 with the same parameters.
+The Subset Effect panel compares A to subset C with $(\alpha_C,\tau_C)=(3,1)$, so the two subsets differ by a vertical mean shift but have the same noise level.
+The Variance Effect panel compares A to subset B with $(\alpha_B,\tau_B)=(0,3)$, so the two subsets share the same sinusoidal mean but differ in noise level.
+We then applied SOAKED with a regression tree learner (\texttt{rpart}) and report RMSE (mean $\pm$ SE) over 10-fold cross-validation with 10 random downsampling seeds for each train size.
 
 Figure~\ref{fig:sim-combined} summarizes three simulation regimes.
 The top row provides a visual summary of the two observed subsets used to define Same and Other, and the bottom row shows the corresponding SOAKED RMSE curves as train size increases.
@@ -176,15 +179,14 @@ As train size increases, the RMSE curves move closer together, which is the expe
 The Subset Effect column changes the subset mean while keeping the within-subset noise structure fixed, which is visible in the separation between the two subsets in the top panel.
 Here the ordering of Same, Other, and All remains separated across train sizes, indicating that the performance differences persist even after controlling for train size.
 
-The Combined Effect column uses subsets that differ in both noise level and effective difficulty.
-The top panel shows both overlap and heterogeneity, while the bottom panel shows that increasing train size improves all three training choices but does not eliminate the gap between them.
-In this regime, increasing train size improves all three training choices, but a substantial gap remains between them.
-This is the pattern expected when both sample size and subset membership contribute to predictive performance.
+The Variance Effect column uses subsets with the same mean function but different noise levels.
+The top panel therefore shows similar central trend but much higher spread in one subset, while the bottom panel shows that increasing train size improves all three training choices but does not eliminate the gap between them.
+This is the pattern expected when subset-specific difficulty remains even after train-size matching.
 
 \begin{figure}
     \centering
 \includegraphics[width=\textwidth]{combined_simulation_panels.png}
-    \caption{SOAKED on simulated regression data with three regimes. The top row shows the two observed subsets used to define Same and Other, and the bottom row shows RMSE (mean $\pm$ SE) as a function of training size for Same, Other, and All over 10-fold cross-validation with 10 random downsampling seeds. In the Sample Size Effect regime, the subsets overlap and the RMSE curves converge as training size increases. In the Subset Effect regime, the subsets differ systematically and the RMSE ordering remains separated after train-size matching. In the Combined Effect regime, the subsets differ in both difficulty and variability, so both larger training sets and subset identity affect performance.}
+    \caption{SOAKED on simulated regression data with three regimes. The top row shows the two observed subsets used to define Same and Other, and the bottom row shows RMSE (mean $\pm$ SE) as a function of training size for Same, Other, and All over 10-fold cross-validation with 10 random downsampling seeds. In the Sample Size Effect regime, the subsets are identically distributed and the RMSE curves converge as training size increases. In the Subset Effect regime, the subsets differ by an additive shift and the RMSE ordering remains separated after train-size matching. In the Variance Effect regime, the subsets share the same mean function but differ in noise level, so subset-specific difficulty remains even as train size increases.}
     \label{fig:sim-combined}
 \end{figure}
 
