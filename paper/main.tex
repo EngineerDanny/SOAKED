@@ -206,6 +206,30 @@ with
 :=
 \widehat{\Delta}_t^{\mathrm{full}}(a,b)-\widehat{\Delta}_t^{\mathrm{match}}(a,b).
 \]
+
+Table~\ref{tab:scenario-interpretation} summarizes the qualitative interpretation of Same versus Other before downsampling.
+The off-diagonal cases already indicate a subset effect because the smaller training source is more predictive.
+The diagonal cases are ambiguous under unequal training sizes, which is precisely the setting where SOAKED is needed.
+
+\begin{table}[t]
+\centering
+\small
+\caption{Qualitative interpretation of Same versus Other before matched-size downsampling.}
+\label{tab:scenario-interpretation}
+\begin{tabular}{p{0.28\linewidth}p{0.31\linewidth}p{0.31\linewidth}}
+\toprule
+ & \textbf{Other better than Same} & \textbf{Same better than Other} \\
+\midrule
+\textbf{Other larger than Same} &
+Ambiguous under unequal training sizes. The apparent advantage of Other may reflect either more training data or a residual subset effect. SOAKED resolves this case by matching train size. &
+This cannot be explained by sample size alone. Same remains more predictive even though Other has more training data, which is evidence of a subset effect. \\
+\addlinespace
+\textbf{Same larger than Other} &
+This cannot be explained by sample size alone. Other remains more predictive even though Same has more training data, which is evidence of a subset effect. &
+Ambiguous under unequal training sizes. The apparent advantage of Same may reflect either more training data or a residual subset effect. SOAKED resolves this case by matching train size. \\
+\bottomrule
+\end{tabular}
+\end{table}
 \section{Results}
 
 \subsection{Learner robustness on the traffic data}
