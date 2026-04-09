@@ -63,7 +63,7 @@ plot_dt[, text_label := sprintf("%.3f±%.3f", metric_mean, metric_se)]
 x_min <- min(plot_dt$metric_mean - plot_dt$metric_se)
 x_max <- max(plot_dt$metric_mean + plot_dt$metric_se)
 x_range <- x_max - x_min
-x_lower <- x_min - 0.16 * x_range
+x_lower <- x_min - 0.24 * x_range
 x_upper <- x_max + 0.20 * x_range
 
 subset_colors <- c(same = "red", other = "blue")
@@ -91,13 +91,8 @@ pvalue_dt[, p_label := ifelse(p_value < 1e-4, "P<0.0001", sprintf("P=%.4f", p_va
 pvalue_dt[, y_start := pmin(same, other)]
 pvalue_dt[, y_end := pmax(same, other)]
 pvalue_dt[, x_text := learner_num]
-pvalue_dt[, y_text := (y_start + y_end) / 2]
-pvalue_dt[, left_space := y_start - x_lower]
-pvalue_dt[, right_space := x_upper - y_end]
-pvalue_dt[, label_side := fifelse(right_space > left_space, "right", "left")]
-pvalue_dt[label_side == "right", y_text := y_end + 0.02 * x_range]
-pvalue_dt[label_side == "left", y_text := y_start - 0.02 * x_range]
-pvalue_dt[, hjust_text := fifelse(label_side == "right", 0, 1)]
+pvalue_dt[, y_text := y_start - 0.02 * x_range]
+pvalue_dt[, hjust_text := 1]
 
 figure <- ggplot(
   plot_dt,
