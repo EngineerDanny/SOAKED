@@ -5,8 +5,8 @@ run_torch_mlp_benchmark <- function(dt, feature_names, target_name, iteration_dt
   torch_device_name <- if (torch::backends_mps_is_available()) "mps" else "cpu"
   torch_device_obj <- torch::torch_device(torch_device_name)
   batch_size <- 16384L
-  max_epochs <- 80L
-  early_stop_patience <- 10L
+  max_epochs <- 120L
+  early_stop_patience <- 15L
   make_scaled_tensors <- function(row_ids, x_center, x_scale, y_center = NULL, y_scale = NULL) {
     x_scaled <- scale(x_mat[row_ids, , drop = FALSE], center = x_center, scale = x_scale)
     x_tensor <- torch_tensor(x_scaled, dtype = torch_float(), device = torch_device_obj)
