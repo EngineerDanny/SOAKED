@@ -72,8 +72,8 @@ figure <- ggplot() +
     limits = c(0.5, length(learner_labels) + 0.5)
   ) +
   labs(
-    x = "Train time (s, log10 scale)",
-    y = "Learner"
+    x = "Per-run training time (s, log10 scale)",
+    y = NULL
   ) +
   theme_bw()
 
