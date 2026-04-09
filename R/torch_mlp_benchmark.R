@@ -1,21 +1,20 @@
 run_torch_mlp_benchmark <- function(dt, feature_names, target_name, iteration_dt) {
   x_mat <- as.matrix(dt[, ..feature_names])
   y_vec <- dt[[target_name]]
+  learning_rates <- c(1e-2, 3e-3, 1e-3)
   torch_device_name <- if (torch::backends_mps_is_available()) "mps" else "cpu"
   torch_device_obj <- torch::torch_device(torch_device_name)
 
   torch_mlp <- nn_module(
     initialize = function(input_dim) {
       self$net <- nn_sequential(
-        nn_linear(input_dim, 128),
+        nn_linear(input_dim, 32),
         nn_relu(),
         nn_dropout(0.10),
-        nn_linear(128, 64),
+        nn_linear(32, 16),
         nn_relu(),
         nn_dropout(0.10),
-        nn_linear(64, 32),
-        nn_relu(),
-        nn_linear(32, 1)
+        nn_linear(16, 1)
       )
     },
     forward = function(x) {
@@ -70,38 +69,53 @@ run_torch_mlp_benchmark <- function(dt, feature_names, target_name, iteration_dt
     x_test <- torch_tensor(x_test_scaled, dtype = torch_float(), device = torch_device_obj)
 
     model <- torch_mlp(input_dim = ncol(x_mat))
-    model$to(device = torch_device_obj)
-    optimizer <- optim_adamw(model$parameters, lr = 1e-3, weight_decay = 1e-4)
     best_val <- Inf
     best_state <- NULL
-    patience <- 0L
+    best_lr <- NA_real_
 
     train_seconds <- system.time({
-      for (epoch in seq_len(80L)) {
-        model$train()
-        optimizer$zero_grad()
-        pred <- model(x_train)
-        loss <- nn_smooth_l1_loss()(pred, y_train)
-        loss$backward()
-        optimizer$step()
+      for (lr in learning_rates) {
+        model <- torch_mlp(input_dim = ncol(x_mat))
+        model$to(device = torch_device_obj)
+        optimizer <- optim_adamw(model$parameters, lr = lr, weight_decay = 1e-4)
+        candidate_best_val <- Inf
+        candidate_best_state <- NULL
+        patience <- 0L
 
-        model$eval()
-        with_no_grad({
-          val_loss <- as.numeric(nn_mse_loss()(model(x_val), y_val)$to(device = "cpu"))
-        })
-        if (val_loss + 1e-8 < best_val) {
-          best_val <- val_loss
-          best_state <- lapply(model$state_dict(), function(x) x$clone()$detach())
-          patience <- 0L
-        } else {
-          patience <- patience + 1L
+        for (epoch in seq_len(40L)) {
+          model$train()
+          optimizer$zero_grad()
+          pred <- model(x_train)
+          loss <- nn_smooth_l1_loss()(pred, y_train)
+          loss$backward()
+          optimizer$step()
+
+          model$eval()
+          with_no_grad({
+            val_loss <- as.numeric(nn_mse_loss()(model(x_val), y_val)$to(device = "cpu"))
+          })
+          if (val_loss + 1e-8 < candidate_best_val) {
+            candidate_best_val <- val_loss
+            candidate_best_state <- lapply(model$state_dict(), function(x) x$clone()$detach())
+            patience <- 0L
+          } else {
+            patience <- patience + 1L
+          }
+          if (patience >= 5L) {
+            break
+          }
         }
-        if (patience >= 8L) {
-          break
+
+        if (candidate_best_val + 1e-8 < best_val) {
+          best_val <- candidate_best_val
+          best_state <- candidate_best_state
+          best_lr <- lr
         }
       }
     })[["elapsed"]]
 
+    model <- torch_mlp(input_dim = ncol(x_mat))
+    model$to(device = torch_device_obj)
     model$load_state_dict(best_state)
     model$eval()
     pred_vec <- with_no_grad({
