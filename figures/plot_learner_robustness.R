@@ -59,7 +59,7 @@ figure <- ggplot(
       width = 0.2,
       linewidth = 0.4
   ) +
-  geom_point(position = dodge, size = 2) +
+  geom_point(position = dodge, size = 2, shape = 1, stroke = 0.8) +
   geom_text(
     aes(label = text_label),
     position = dodge,
