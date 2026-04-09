@@ -5,7 +5,6 @@ script_arg <- grep("^--file=", commandArgs(), value = TRUE)
 script_path <- normalizePath(sub("^--file=", "", script_arg[[1L]]), mustWork = TRUE)
 repo_root <- normalizePath(file.path(dirname(script_path), ".."), mustWork = TRUE)
 
-input_csv <- file.path(repo_root, "results", "learner_robustness_summary.csv")
 raw_csv <- file.path(repo_root, "results", "learner_robustness_runs.csv")
 output_png <- file.path(repo_root, "results", "learner_robustness_plot.png")
 paper_png <- file.path(repo_root, "paper", "figures", "learner_robustness_plot.png")
@@ -21,13 +20,13 @@ add_sample_size_labels <- function(dt) {
   ), use.names = TRUE)
 }
 
-plot_dt <- fread(input_csv)
-plot_dt <- plot_dt[train_subsets %in% c("same", "other")]
-plot_dt <- add_sample_size_labels(plot_dt)
-
 raw_dt <- fread(raw_csv)
 raw_dt <- raw_dt[train_subsets %in% c("same", "other")]
 raw_dt <- add_sample_size_labels(raw_dt)
+plot_dt <- raw_dt[, .(
+  metric_mean = mean(metric_value),
+  metric_sd = sd(metric_value)
+), by = .(learner, test_subset, sample_size, train_subsets, metric_label)]
 
 learner_labels <- c(
   featureless = "Featureless",
@@ -58,10 +57,10 @@ raw_dt[, sample_size := factor(
   sample_size,
   levels = c("Full train sets", "Matched smallest size")
 )]
-plot_dt[, text_label := sprintf("%.3f±%.3f", metric_mean, metric_se)]
+plot_dt[, text_label := sprintf("%.3f±%.3f", metric_mean, metric_sd)]
 
-x_min <- min(plot_dt$metric_mean - plot_dt$metric_se)
-x_max <- max(plot_dt$metric_mean + plot_dt$metric_se)
+x_min <- min(plot_dt$metric_mean - plot_dt$metric_sd)
+x_max <- max(plot_dt$metric_mean + plot_dt$metric_sd)
 x_range <- x_max - x_min
 x_lower <- x_min - 0.24 * x_range
 x_upper <- x_max + 0.20 * x_range
@@ -100,8 +99,8 @@ figure <- ggplot(
 ) +
   geom_linerange(
     aes(
-      ymin = metric_mean - metric_se,
-      ymax = metric_mean + metric_se
+      ymin = metric_mean - metric_sd,
+      ymax = metric_mean + metric_sd
     ),
     position = dodge,
     linewidth = 0.4,
