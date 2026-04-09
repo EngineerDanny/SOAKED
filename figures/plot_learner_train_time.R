@@ -14,8 +14,8 @@ run_dt <- fread(input_csv)
 learner_labels <- c(
   featureless = "Featureless",
   rpart = "rpart",
-  random_forest = "Random forest",
-  glmnet = "glmnet"
+  glmnet = "glmnet",
+  random_forest = "Random forest"
 )
 run_dt[, learner := factor(learner, levels = names(learner_labels), labels = unname(learner_labels))]
 run_dt <- unique(run_dt, by = c("learner", "iteration", "train_seconds"))
