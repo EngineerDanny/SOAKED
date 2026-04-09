@@ -205,10 +205,10 @@ with
 \]
 \section{Results}
 
-\subsection{Learner robustness on the carbon-emissions traffic data}
-For the carbon-emissions regression example, we used road-segment traffic data from Phoenix and Baltimore with log-transformed Average Annual Daily Traffic (AADT) as the prediction target.
+\subsection{Learner robustness on the traffic data}
+For this traffic regression example, we used road-segment data from Phoenix and Baltimore with log-transformed Average Annual Daily Traffic (AADT) as the prediction target.
 The feature set combines night-time lights, population, road density, and Sentinel-2 satellite bands.
-To assess whether the SOAKED conclusion depends strongly on the prediction algorithm, we compared featureless, regression tree (\texttt{rpart}), elastic net (\texttt{cv\_glmnet}), random forest, and a torch-based multi-layer perceptron.
+To assess whether the SOAKED conclusion depends strongly on the prediction algorithm, we compared featureless, regression tree (\texttt{rpart}), elastic net (\texttt{cv\_glmnet}), and a torch-based multi-layer perceptron.
 Figure~\ref{fig:learner-panels} focuses on the Phoenix test subset and reports test RMSE (mean $\pm$ SE across 5 CV splits) for the Same and Other train-subset configurations, both with the full available training sets and after matching all train sizes to the smallest feasible size.
 
 \begin{figure}
@@ -218,13 +218,14 @@ Figure~\ref{fig:learner-panels} focuses on the Phoenix test subset and reports t
     \label{fig:learner-panels}
 \end{figure}
 
-The qualitative SOAKED conclusion is stable across learners in this example: training on the same subset is consistently better than training on the opposite subset, even after train-size matching.
-For example, with matched train size ($N=14{,}702$), Same improves over Other for every learner, from 1.076 versus 1.078 for the featureless baseline to 0.944 versus 1.167 for the torch MLP.
-With the full Phoenix-size training set, the strongest RMSE comes from random forest (0.790), followed by the torch MLP (0.928), while \texttt{glmnet} and \texttt{rpart} remain close to 0.98.
+The qualitative SOAKED conclusion is stable across the retained learner families in this example: training on the same subset is consistently better than training on the opposite subset, even after train-size matching.
+With matched train size ($N=14{,}702$), Same improves over Other for every learner, from 1.076 versus 1.078 for the featureless baseline to 0.944 versus 1.167 for the torch MLP.
+Among the non-featureless learners, \texttt{rpart} and \texttt{glmnet} both remain well below the featureless baseline in the matched-size condition, while the torch MLP gives the lowest RMSE.
+With the full Phoenix-size Same training set ($N=88{,}331$), the strongest RMSE among the plotted learners comes from the torch MLP (0.928), followed by \texttt{glmnet} (0.980) and \texttt{rpart} (0.982).
 
 Panel B shows that these predictive gains come with large differences in computational cost.
-Featureless, \texttt{rpart}, and \texttt{glmnet} train in approximately 0.002, 0.12, and 0.44 seconds per run, respectively, whereas random forest requires about 0.91 seconds and the tuned torch MLP requires about 32.2 seconds.
-Because the main SOAKED diagnosis is stable across learner families, we use \texttt{rpart} in the remaining experiments as a simple nonlinear default that is far cheaper than random forest or the neural network while still capturing subset-dependent structure.
+Featureless, \texttt{rpart}, and \texttt{glmnet} train in approximately 0.002, 0.12, and 0.44 seconds per run, respectively, whereas the tuned torch MLP requires about 32.2 seconds.
+Because the main SOAKED diagnosis is stable across these learner families, we use \texttt{rpart} in the remaining experiments as a simple nonlinear default that is much cheaper than the neural network, substantially cheaper than \texttt{glmnet}, and still captures the same subset-dependent structure.
 
 \subsection{Simulated regression data sets}
 We generated synthetic regression data from a sinusoidal mean function with subset-specific additive offsets and noise levels.
