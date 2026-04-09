@@ -99,6 +99,11 @@ These data combine Average Annual Daily Traffic (AADT) from the USA Highway Perf
 
 \section{Methods}
 
+Figure~\ref{fig:SOAKED-concept} illustrates the SOAKED construction for one outer cross-validation split and one target subset.
+As in SOAK, we fix a test fold and a target subset, then compare predictors trained on the Same subset, the Other subset, and All subsets combined.
+The key extension is that SOAKED keeps both the original full-data training sets and matched-size versions obtained by random downsampling to the smallest feasible training set.
+This allows us to compare the observed full-data performance gap to the residual gap after controlling for training size.
+
 
 \begin{figure}
     \centering
