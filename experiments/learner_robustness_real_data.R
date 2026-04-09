@@ -85,50 +85,69 @@ task <- TaskRegr$new(
 )
 task$set_col_roles("subset_id", c("subset", "stratum"))
 metric <- msr("regr.rmse")
-
-all_raw <- list()
-raw_i <- 1L
 message("Running dataset: Traffic AADT")
 
-resampling <- ResamplingSameOtherSizesCV$new()
-resampling$param_set$values$folds <- folds
-resampling$param_set$values$seeds <- seeds
-resampling$param_set$values$sizes <- 0L
-resampling$instantiate(task)
-
-iteration_dt <- resampling$instance$iteration.dt
-
-for (learner_name in learner_filter) {
-  learner_spec <- make_learner_spec(learner_name)
-  message(sprintf("  learner: %s", learner_spec$label))
-  for (iter_i in seq_len(nrow(iteration_dt))) {
-    iter_row <- iteration_dt[iter_i]
-    learner <- learner_spec$learner$clone(deep = TRUE)
-    train_seconds <- system.time(
-      learner$train(task, row_ids = iter_row$train[[1L]])
-    )[["elapsed"]]
-    prediction <- learner$predict(task, row_ids = iter_row$test[[1L]])
-    metric_value <- prediction$score(metric)
-    all_raw[[raw_i]] <- data.table(
-      dataset_id = "traffic_aadt",
-      dataset_label = "Traffic AADT",
-      metric_id = "regr.rmse",
-      metric_label = "RMSE on log(AADT)",
-      learner = learner_spec$label,
-      test_subset = as.character(iter_row$test.subset),
-      train_subsets = iter_row$train.subsets,
-      n_train_groups = iter_row$n.train.groups,
-      fold = iter_row$test.fold,
-      seed = iter_row$seed,
-      iteration = iter_row$iteration,
-      metric_value = metric_value,
-      train_seconds = train_seconds
-    )
-    raw_i <- raw_i + 1L
-  }
+make_resampling <- function() {
+  resampling <- ResamplingSameOtherSizesCV$new()
+  resampling$param_set$values$folds <- folds
+  resampling$param_set$values$seeds <- seeds
+  resampling$param_set$values$sizes <- 0L
+  resampling
 }
 
-raw_dt <- rbindlist(all_raw, fill = TRUE)
+run_learner <- function(learner_name) {
+  learner_spec <- make_learner_spec(learner_name)
+  message(sprintf("  learner: %s", learner_spec$label))
+  rr <- resample(
+    task,
+    learner_spec$learner,
+    make_resampling(),
+    store_models = TRUE
+  )
+  score_dt <- as.data.table(rr$score(metric))[, .(
+    iteration,
+    metric_value = regr.rmse
+  )]
+  iteration_dt <- rr$resampling$instance$iteration.dt[, .(
+    iteration,
+    test_subset = as.character(test.subset),
+    train_subsets = train.subsets,
+    n_train_groups = n.train.groups,
+    fold = test.fold,
+    seed
+  )]
+  timing_dt <- data.table(
+    iteration = seq_along(rr$learners),
+    train_seconds = vapply(rr$learners, function(x) x$timings[["train"]], numeric(1))
+  )
+  raw_dt <- merge(score_dt, iteration_dt, by = "iteration")
+  raw_dt <- merge(raw_dt, timing_dt, by = "iteration")
+  raw_dt[, `:=`(
+    dataset_id = "traffic_aadt",
+    dataset_label = "Traffic AADT",
+    metric_id = "regr.rmse",
+    metric_label = "RMSE on log(AADT)",
+    learner = learner_spec$label
+  )]
+  setcolorder(raw_dt, c(
+    "dataset_id",
+    "dataset_label",
+    "metric_id",
+    "metric_label",
+    "learner",
+    "test_subset",
+    "train_subsets",
+    "n_train_groups",
+    "fold",
+    "seed",
+    "iteration",
+    "metric_value",
+    "train_seconds"
+  ))
+  raw_dt
+}
+
+raw_dt <- rbindlist(lapply(learner_filter, run_learner), use.names = TRUE)
 summary_dt <- raw_dt[, .(
   metric_mean = mean(metric_value),
   metric_se = sd(metric_value) / sqrt(.N),
