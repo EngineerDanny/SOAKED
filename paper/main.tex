@@ -218,7 +218,25 @@ When predicting on the pre-defined training subset, however, Same remains substa
 TODO Dan and Jeff explain the data and results.
 
 \subsection{Carbon emissions regression data sets}
-TODO Bilal explain the data.
+For the carbon-emissions regression example, we used road-segment traffic data from Phoenix and Baltimore with log-transformed Average Annual Daily Traffic (AADT) as the prediction target.
+The feature set combines night-time lights, population, road density, and Sentinel-2 satellite bands.
+To assess whether the SOAKED conclusion depends strongly on the prediction algorithm, we compared featureless, regression tree (\texttt{rpart}), elastic net (\texttt{cv\_glmnet}), random forest, and a torch-based multi-layer perceptron.
+Figure~\ref{fig:learner-panels} focuses on the Phoenix test subset and reports test RMSE (mean $\pm$ SE across 5 CV splits) for the Same and Other train-subset configurations, both with the full available training sets and after matching all train sizes to the smallest feasible size.
+
+\begin{figure}
+    \centering
+    \includegraphics[width=\textwidth]{learner_panels.png}
+    \caption{Learner robustness and training-time tradeoffs for the carbon-emissions traffic data. Panel A shows SOAKED results for the Phoenix test subset, comparing Same versus Other training subsets using the full available training sets and matched smallest-size training sets. Across all learners, Same substantially outperforms Other, and this qualitative conclusion persists after train-size matching. Panel B shows per-run training time on a log-scaled axis. More expressive learners can improve RMSE, but the gain comes with a large increase in computational cost.}
+    \label{fig:learner-panels}
+\end{figure}
+
+The qualitative SOAKED conclusion is stable across learners in this example: training on the same subset is consistently better than training on the opposite subset, even after train-size matching.
+For example, with matched train size ($N=14{,}702$), Same improves over Other for every learner, from 1.076 versus 1.078 for the featureless baseline to 0.944 versus 1.167 for the torch MLP.
+With the full Phoenix-size training set, the strongest RMSE comes from random forest (0.790), followed by the torch MLP (0.928), while \texttt{glmnet} and \texttt{rpart} remain close to 0.98.
+
+Panel B shows that these predictive gains come with large differences in computational cost.
+Featureless, \texttt{rpart}, and \texttt{glmnet} train in approximately 0.002, 0.12, and 0.44 seconds per run, respectively, whereas random forest requires about 0.91 seconds and the tuned torch MLP requires about 32.2 seconds.
+These results support two claims: first, the main SOAKED diagnosis is not an artifact of a single learner family; second, for the remaining experiments it is reasonable to prefer a simpler learner such as \texttt{rpart} when computational cost matters, while still recognizing that more expensive learners can sometimes achieve lower RMSE.
 
 \subsection{Regression data sets with gender subsets}
 % https://raw.githubusercontent.com/lamtung16/soak_regression/refs/heads/main/results/WorkersCompensation/Gender.csv
