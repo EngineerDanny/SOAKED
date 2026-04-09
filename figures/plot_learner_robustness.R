@@ -23,7 +23,7 @@ add_sample_size_labels <- function(dt) {
 raw_dt <- fread(raw_csv)
 raw_dt <- raw_dt[train_subsets %in% c("same", "other")]
 raw_dt <- add_sample_size_labels(raw_dt)
-raw_dt <- raw_dt[test_subset == "Phoenix"]
+raw_dt <- raw_dt[test_subset == "Baltimore"]
 plot_dt <- raw_dt[, .(
   metric_mean = mean(metric_value),
   metric_se = sd(metric_value) / sqrt(.N)
