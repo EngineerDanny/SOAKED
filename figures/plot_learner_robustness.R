@@ -154,7 +154,7 @@ figure <- ggplot(
   ) +
   labs(
     x = NULL,
-    y = "Test RMSE on log-transformed AADT",
+    y = "Test RMSE on log(AADT), mean ± SE across 5 CV splits",
     color = NULL
   ) +
   theme_bw() +
