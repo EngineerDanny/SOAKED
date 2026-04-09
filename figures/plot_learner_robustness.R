@@ -65,7 +65,7 @@ x_lower <- x_min - 0.16 * x_range
 x_upper <- x_max + 0.20 * x_range
 
 subset_colors <- c(same = "red", other = "blue")
-dodge <- position_dodge(width = 0.6)
+dodge <- position_dodge2(width = 0.6, reverse = TRUE)
 
 pvalue_dt <- raw_dt[, {
   paired_dt <- dcast(.SD, fold + seed ~ train_subsets, value.var = "metric_value")
