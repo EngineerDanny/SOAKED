@@ -123,17 +123,78 @@ These data combine Average Annual Daily Traffic (AADT) from the USA Highway Perf
     \label{fig:SOAKED-concept}
 \end{figure}
 
-\paragraph{Sample size effect.}
-When the subset(s) used for training (either \textit{same}, \textit{other} or \textit{all}) is fixed, model performance improves as the number of training samples increases. 
-In other words, models trained on more training samples consistently perform better. 
-This indicates that regression models benefit from increased data availability, likely because additional samples allow the model to better capture the underlying data distribution and reduce variance.
+\subsection{Operational decomposition of performance gaps}
+Fix a target subset $t$, and consider two training configurations $a,b \in \mathcal C$, where typically
+$\mathcal C=\{\mathrm{Same},\mathrm{Other},\mathrm{All}\}$.
+Let $L_t(\hat h_{c,n})$ denote the test loss on target subset $t$ of a predictor trained under configuration $c$ using $n$ training examples, where lower values indicate better performance.
+For classification metrics such as AUC, we define loss as $1-\mathrm{AUC}$ so that the same lower-is-better convention applies throughout.
 
-\paragraph{Subset effect.}
-When the training sample size is fixed, the model trained on the \textit{same} subset performs best, followed by the model trained on the \textit{all} subsets, and finally the model trained on the \textit{other} subset. 
-This suggests that there are differences in the underlying patterns between the two gender subsets, making models trained on the \textit{same} subset better.
-However, when using the full size dataset, the model trained on the \textit{all} subsets performs slightly better than the full-size \textit{same} model. 
-This indicates that although the subsets have distinct patterns, they are still partially related. 
-As a result, incorporating additional samples from the \textit{other} subset can still contribute useful information and lead to a small improvement in overall model performance.
+Let $n_a$ and $n_b$ denote the full available training sizes for configurations $a$ and $b$, respectively, and let
+\[
+n_0 = \min(n_a,n_b)
+\]
+denote the matched training size used after downsampling.
+We define the full-data gap by
+\begin{equation}
+\Delta_t^{\mathrm{full}}(a,b)
+:=
+L_t(\hat h_{a,n_a}) - L_t(\hat h_{b,n_b}),
+\label{eq:full-gap}
+\end{equation}
+and the matched-size gap by
+\begin{equation}
+\Delta_t^{\mathrm{match}}(a,b)
+:=
+L_t(\hat h_{a,n_0}) - L_t(\hat h_{b,n_0}).
+\label{eq:matched-gap}
+\end{equation}
+
+This is an operational decomposition: the matched-size gap is interpreted as the residual performance difference after controlling for training size, and the remainder of the full-data gap is attributed to unequal training size.
+Accordingly, we define the subset-effect component as
+\begin{equation}
+\Delta_t^{\mathrm{subset}}(a,b)
+:=
+\Delta_t^{\mathrm{match}}(a,b),
+\label{eq:subset-component}
+\end{equation}
+and the sample-size-effect component as
+\begin{equation}
+\Delta_t^{\mathrm{size}}(a,b)
+:=
+\Delta_t^{\mathrm{full}}(a,b)-\Delta_t^{\mathrm{match}}(a,b).
+\label{eq:size-component}
+\end{equation}
+These definitions yield the exact identity
+\begin{equation}
+\Delta_t^{\mathrm{full}}(a,b)
+=
+\Delta_t^{\mathrm{size}}(a,b)
++
+\Delta_t^{\mathrm{subset}}(a,b).
+\label{eq:gap-decomposition}
+\end{equation}
+
+In practice, we estimate these quantities by averaging the chosen loss over outer cross-validation splits and, for matched-size comparisons, over random downsampling seeds.
+When $\Delta_t^{\mathrm{full}}(a,b)\neq 0$, we also report the signed subset-effect and sample-size-effect percentages,
+\begin{equation}
+P_t^{\mathrm{subset}}(a,b)
+:=
+100\cdot
+\frac{\Delta_t^{\mathrm{subset}}(a,b)}
+{\Delta_t^{\mathrm{full}}(a,b)},
+\qquad
+P_t^{\mathrm{size}}(a,b)
+:=
+100\cdot
+\frac{\Delta_t^{\mathrm{size}}(a,b)}
+{\Delta_t^{\mathrm{full}}(a,b)},
+\label{eq:pct-components}
+\end{equation}
+so that
+\[
+P_t^{\mathrm{subset}}(a,b)+P_t^{\mathrm{size}}(a,b)=100.
+\]
+These percentages are only reported when the full-data gap is not too close to zero, because very small denominators can make the decomposition unstable.
 \section{Results}
 
 \subsection{Learner robustness on the carbon-emissions traffic data}
