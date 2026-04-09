@@ -35,11 +35,12 @@ plot_dt[, sample_size := factor(
   sample_size,
   levels = c("Full train sets", "Matched smallest size")
 )]
+plot_dt[, text_label := sprintf("%.3f±%.3f", metric_mean, metric_se)]
 
 x_min <- min(plot_dt$metric_mean - plot_dt$metric_se)
 x_max <- max(plot_dt$metric_mean + plot_dt$metric_se)
 x_range <- x_max - x_min
-x_upper <- x_max + 0.05 * x_range
+x_upper <- x_max + 0.20 * x_range
 
 subset_colors <- c(same = "red", other = "blue")
 dodge <- position_dodge(width = 0.6)
@@ -58,6 +59,13 @@ figure <- ggplot(
       linewidth = 0.4
   ) +
   geom_point(position = dodge, size = 2) +
+  geom_text(
+    aes(label = text_label),
+    position = dodge,
+    hjust = -0.2,
+    size = 3,
+    show.legend = FALSE
+  ) +
   facet_grid(test_subset ~ sample_size) +
   coord_flip() +
   scale_color_manual(values = subset_colors, breaks = c("same", "other")) +
