@@ -32,6 +32,7 @@ raw_dt <- add_sample_size_labels(raw_dt)
 learner_labels <- c(
   featureless = "Featureless",
   rpart = "rpart",
+  random_forest = "Random forest",
   glmnet = "glmnet"
 )
 plot_dt[, learner := factor(learner, levels = names(learner_labels), labels = unname(learner_labels))]

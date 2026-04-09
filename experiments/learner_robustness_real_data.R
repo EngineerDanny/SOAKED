@@ -50,9 +50,15 @@ soak$param_set$values$sizes <- 0L
 
 featureless <- mlr3::LearnerRegrFeatureless$new()
 rpart <- mlr3::lrn("regr.rpart")
+random_forest <- mlr3::lrn("regr.ranger", num.trees = 10L)
 glmnet <- mlr3learners::LearnerRegrCVGlmnet$new()
 glmnet$param_set$values$nfolds <- 5L
-reg.learner.list <- list(featureless = featureless, rpart = rpart, glmnet = glmnet)
+reg.learner.list <- list(
+  featureless = featureless,
+  rpart = rpart,
+  random_forest = random_forest,
+  glmnet = glmnet
+)
 
 bench.grid <- mlr3::benchmark_grid(task, reg.learner.list, soak)
 bench.result <- mlr3::benchmark(bench.grid)
@@ -61,7 +67,11 @@ raw_dt <- as.data.table(mlr3resampling::score(bench.result, metric))[, .(
   dataset_label = "Traffic AADT",
   metric_id = "regr.rmse",
   metric_label = "RMSE on log(AADT)",
-  learner = fifelse(algorithm == "cv_glmnet", "glmnet", algorithm),
+  learner = fcase(
+    algorithm == "cv_glmnet", "glmnet",
+    algorithm == "ranger", "random_forest",
+    default = algorithm
+  ),
   test_subset = as.character(test.subset),
   train_subsets = train.subsets,
   n_train_groups = n.train.groups,
