@@ -73,7 +73,7 @@ figure <- ggplot() +
     limits = c(0.5, length(learner_labels) + 0.5)
   ) +
   labs(
-    x = "Time (s)",
+    x = "Training Time Per Run (s, log-scaled)",
     y = NULL
   ) +
   theme_bw()
