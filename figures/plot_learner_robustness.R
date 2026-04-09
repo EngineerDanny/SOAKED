@@ -154,7 +154,7 @@ figure <- ggplot(
   ) +
   labs(
     x = NULL,
-    y = unique(plot_dt$metric_label),
+    y = "Test RMSE on log-transformed AADT",
     color = NULL
   ) +
   theme_bw() +
