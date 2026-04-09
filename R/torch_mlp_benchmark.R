@@ -4,6 +4,7 @@ run_torch_mlp_benchmark <- function(dt, feature_names, target_name, iteration_dt
   learning_rates <- c(1e-2, 3e-3, 1e-3)
   torch_device_name <- if (torch::backends_mps_is_available()) "mps" else "cpu"
   torch_device_obj <- torch::torch_device(torch_device_name)
+  batch_size <- 16384L
   make_scaled_tensors <- function(row_ids, x_center, x_scale, y_center = NULL, y_scale = NULL) {
     x_scaled <- scale(x_mat[row_ids, , drop = FALSE], center = x_center, scale = x_scale)
     x_tensor <- torch_tensor(x_scaled, dtype = torch_float(), device = torch_device_obj)
@@ -16,6 +17,21 @@ run_torch_mlp_benchmark <- function(dt, feature_names, target_name, iteration_dt
       device = torch_device_obj
     )
     list(x = x_tensor, y = y_tensor)
+  }
+  train_epoch <- function(model, optimizer, x_tensor, y_tensor) {
+    model$train()
+    n_obs <- as.integer(x_tensor$size(1))
+    shuffled_idx <- sample.int(n_obs)
+    batch_starts <- seq.int(1L, n_obs, by = batch_size)
+    for (start_idx in batch_starts) {
+      end_idx <- min(start_idx + batch_size - 1L, n_obs)
+      batch_idx <- shuffled_idx[start_idx:end_idx]
+      optimizer$zero_grad()
+      pred <- model(x_tensor[batch_idx, ])
+      loss <- nn_smooth_l1_loss()(pred, y_tensor[batch_idx, ])
+      loss$backward()
+      optimizer$step()
+    }
   }
 
   torch_mlp <- nn_module(
@@ -81,12 +97,7 @@ run_torch_mlp_benchmark <- function(dt, feature_names, target_name, iteration_dt
         patience <- 0L
 
         for (epoch in seq_len(40L)) {
-          model$train()
-          optimizer$zero_grad()
-          pred <- model(train_tensors$x)
-          loss <- nn_smooth_l1_loss()(pred, train_tensors$y)
-          loss$backward()
-          optimizer$step()
+          train_epoch(model, optimizer, train_tensors$x, train_tensors$y)
 
           model$eval()
           with_no_grad({
@@ -126,12 +137,7 @@ run_torch_mlp_benchmark <- function(dt, feature_names, target_name, iteration_dt
       final_optimizer <- optim_adamw(final_model$parameters, lr = best_lr, weight_decay = 1e-4)
 
       for (epoch in seq_len(best_epoch)) {
-        final_model$train()
-        final_optimizer$zero_grad()
-        pred <- final_model(full_train_tensors$x)
-        loss <- nn_smooth_l1_loss()(pred, full_train_tensors$y)
-        loss$backward()
-        final_optimizer$step()
+        train_epoch(final_model, final_optimizer, full_train_tensors$x, full_train_tensors$y)
       }
 
       final_scaling <- list(
