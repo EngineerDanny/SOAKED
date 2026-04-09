@@ -91,6 +91,8 @@ By contrast, SOAK and SOAKED are diagnostic: they ask whether same-subset, other
 \citet{hocking2026} introduced SOAK as a Same/Other/All cross-validation framework for estimating similarity of learnable patterns across data subsets.
 SOAKED extends that framework to the practically important case of unequal subset sizes.
 Its purpose is not to adapt a source model to a target domain, but to decompose the observed performance gap into a component that disappears after train-size matching and a residual component that remains after controlling for training size.
+Relative to prior work, SOAKED's novelty is the introduction of matched-size downsampling within subset-aware cross-validation.
+This allows observed Same/Other/All performance gaps to be decomposed into a sample-size component and a residual subset component, which standard cross-validation and SOAK alone do not isolate.
 
 \section{Data sets}
 \subsection{Carbon emissions}
