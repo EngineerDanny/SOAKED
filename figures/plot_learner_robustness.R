@@ -94,14 +94,13 @@ figure <- ggplot(
   plot_dt,
   aes(x = learner, y = metric_mean, color = train_subsets)
 ) +
-  geom_errorbar(
+  geom_linerange(
     aes(
       ymin = metric_mean - metric_se,
       ymax = metric_mean + metric_se
     ),
     position = dodge,
-      width = 0.2,
-      linewidth = 0.4
+    linewidth = 0.4
   ) +
   geom_point(
     aes(fill = train_subsets),
