@@ -27,6 +27,7 @@ plot_dt <- raw_dt[, .(
   metric_mean = mean(metric_value),
   metric_se = sd(metric_value) / sqrt(.N)
 ), by = .(learner, test_subset, sample_size, train_subsets, metric_label)]
+panel_dt <- raw_dt[, .(n_runs = uniqueN(iteration)), by = .(test_subset, sample_size)]
 
 learner_labels <- c(
   featureless = "Featureless",
@@ -58,6 +59,16 @@ raw_dt[, sample_size := factor(
   levels = c("Full train sets", "Matched smallest size")
 )]
 plot_dt[, text_label := sprintf("%.3f±%.3f", metric_mean, metric_se)]
+panel_dt[, test_subset := factor(
+  test_subset,
+  levels = c("Baltimore", "Phoenix"),
+  labels = c("Test subset: Baltimore", "Test subset: Phoenix")
+)]
+panel_dt[, sample_size := factor(
+  sample_size,
+  levels = c("Full train sets", "Matched smallest size")
+)]
+panel_dt[, n_label := sprintf("N = %d", n_runs)]
 
 x_min <- min(plot_dt$metric_mean - plot_dt$metric_se)
 x_max <- max(plot_dt$metric_mean + plot_dt$metric_se)
@@ -132,6 +143,14 @@ figure <- ggplot(
     color = "gray20",
     hjust = pvalue_dt$hjust_text,
     vjust = 0.5
+  ) +
+  geom_text(
+    data = panel_dt,
+    aes(x = "Featureless", y = x_lower + 0.01 * x_range, label = n_label),
+    inherit.aes = FALSE,
+    color = "gray20",
+    hjust = 0,
+    vjust = 1
   ) +
   facet_grid(test_subset ~ sample_size) +
   coord_flip() +
