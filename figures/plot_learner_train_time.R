@@ -10,13 +10,13 @@ output_png <- file.path(repo_root, "results", "learner_train_time_plot.png")
 paper_png <- file.path(repo_root, "paper", "figures", "learner_train_time_plot.png")
 
 run_dt <- fread(input_csv)
+run_dt <- run_dt[learner != "random_forest"]
 
 learner_labels <- c(
   featureless = "Featureless",
   rpart = "rpart",
   glmnet = "glmnet",
-  torch_mlp = "Deep neural network",
-  random_forest = "Random forest"
+  torch_mlp = "Deep neural network"
 )
 run_dt[, learner := factor(learner, levels = names(learner_labels), labels = unname(learner_labels))]
 run_dt <- unique(run_dt, by = c("learner", "iteration", "train_seconds"))

@@ -21,6 +21,7 @@ add_sample_size_labels <- function(dt) {
 }
 
 raw_dt <- fread(raw_csv)
+raw_dt <- raw_dt[learner != "random_forest"]
 raw_dt <- raw_dt[train_subsets %in% c("same", "other")]
 raw_dt <- add_sample_size_labels(raw_dt)
 raw_dt <- raw_dt[test_subset == "Phoenix"]
@@ -39,8 +40,7 @@ learner_labels <- c(
   featureless = "Featureless",
   rpart = "rpart",
   glmnet = "glmnet",
-  torch_mlp = "Deep neural network",
-  random_forest = "Random forest"
+  torch_mlp = "Deep neural network"
 )
 plot_dt[, learner := factor(learner, levels = names(learner_labels), labels = unname(learner_labels))]
 raw_dt[, learner := factor(learner, levels = names(learner_labels), labels = unname(learner_labels))]
