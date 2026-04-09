@@ -12,7 +12,7 @@ paper_png <- file.path(repo_root, "paper", "figures", "learner_panels.png")
 robustness_env <- new.env(parent = globalenv())
 sys.source(robustness_script, envir = robustness_env)
 robustness_plot <- robustness_env$figure +
-  labs(title = "Learner Robustness Across Train-Subset Conditions") +
+  labs(title = "A) Learner Robustness Across Train-Subset Conditions") +
   theme(
     plot.title = element_text(face = "bold", hjust = 0),
     legend.position = "bottom"
@@ -21,16 +21,14 @@ robustness_plot <- robustness_env$figure +
 time_env <- new.env(parent = globalenv())
 sys.source(time_script, envir = time_env)
 time_plot <- time_env$figure +
-  labs(title = "Per-Run Training Time Across Learners") +
+  labs(title = "B) Per-Run Training Time Across Learners") +
   theme(
     plot.title = element_text(face = "bold", hjust = 0)
   )
 
 combined_plot <- (robustness_plot / time_plot) +
-  plot_layout(heights = c(3.2, 1.4), guides = "collect") +
-  plot_annotation(tag_levels = "A") &
+  plot_layout(heights = c(3.2, 1.4), guides = "collect") &
   theme(
-    plot.tag = element_text(face = "bold", size = 14),
     legend.position = "bottom"
   )
 
