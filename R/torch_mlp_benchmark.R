@@ -4,6 +4,19 @@ run_torch_mlp_benchmark <- function(dt, feature_names, target_name, iteration_dt
   learning_rates <- c(1e-2, 3e-3, 1e-3)
   torch_device_name <- if (torch::backends_mps_is_available()) "mps" else "cpu"
   torch_device_obj <- torch::torch_device(torch_device_name)
+  make_scaled_tensors <- function(row_ids, x_center, x_scale, y_center = NULL, y_scale = NULL) {
+    x_scaled <- scale(x_mat[row_ids, , drop = FALSE], center = x_center, scale = x_scale)
+    x_tensor <- torch_tensor(x_scaled, dtype = torch_float(), device = torch_device_obj)
+    if (is.null(y_center) || is.null(y_scale)) {
+      return(list(x = x_tensor))
+    }
+    y_tensor <- torch_tensor(
+      matrix((y_vec[row_ids] - y_center) / y_scale, ncol = 1L),
+      dtype = torch_float(),
+      device = torch_device_obj
+    )
+    list(x = x_tensor, y = y_tensor)
+  }
 
   torch_mlp <- nn_module(
     initialize = function(input_dim) {
@@ -28,6 +41,7 @@ run_torch_mlp_benchmark <- function(dt, feature_names, target_name, iteration_dt
     iter_row <- iteration_dt[iter_i]
     train_ids <- iter_row$train[[1L]]
     test_ids <- iter_row$test[[1L]]
+    torch::torch_manual_seed(1000L + iter_i)
     inner_train_ids <- train_ids
     val_n <- max(256L, floor(length(train_ids) * 0.1))
     if (val_n >= length(train_ids)) {
@@ -48,28 +62,14 @@ run_torch_mlp_benchmark <- function(dt, feature_names, target_name, iteration_dt
       y_scale <- 1
     }
 
-    x_train_scaled <- scale(x_mat[inner_train_ids, , drop = FALSE], center = x_center, scale = x_scale)
-    x_val_scaled <- scale(x_mat[val_ids, , drop = FALSE], center = x_center, scale = x_scale)
-    x_test_scaled <- scale(x_mat[test_ids, , drop = FALSE], center = x_center, scale = x_scale)
+    train_tensors <- make_scaled_tensors(inner_train_ids, x_center, x_scale, y_center, y_scale)
+    val_tensors <- make_scaled_tensors(val_ids, x_center, x_scale, y_center, y_scale)
 
-    x_train <- torch_tensor(x_train_scaled, dtype = torch_float(), device = torch_device_obj)
-    y_train <- torch_tensor(
-      matrix((y_vec[inner_train_ids] - y_center) / y_scale, ncol = 1L),
-      dtype = torch_float(),
-      device = torch_device_obj
-    )
-    x_val <- torch_tensor(x_val_scaled, dtype = torch_float(), device = torch_device_obj)
-    y_val <- torch_tensor(
-      matrix((y_vec[val_ids] - y_center) / y_scale, ncol = 1L),
-      dtype = torch_float(),
-      device = torch_device_obj
-    )
-    x_test <- torch_tensor(x_test_scaled, dtype = torch_float(), device = torch_device_obj)
-
-    model <- torch_mlp(input_dim = ncol(x_mat))
     best_val <- Inf
-    best_state <- NULL
     best_lr <- NA_real_
+    best_epoch <- NA_integer_
+    final_model <- NULL
+    final_scaling <- NULL
 
     train_seconds <- system.time({
       for (lr in learning_rates) {
@@ -77,24 +77,24 @@ run_torch_mlp_benchmark <- function(dt, feature_names, target_name, iteration_dt
         model$to(device = torch_device_obj)
         optimizer <- optim_adamw(model$parameters, lr = lr, weight_decay = 1e-4)
         candidate_best_val <- Inf
-        candidate_best_state <- NULL
+        candidate_best_epoch <- 1L
         patience <- 0L
 
         for (epoch in seq_len(40L)) {
           model$train()
           optimizer$zero_grad()
-          pred <- model(x_train)
-          loss <- nn_smooth_l1_loss()(pred, y_train)
+          pred <- model(train_tensors$x)
+          loss <- nn_smooth_l1_loss()(pred, train_tensors$y)
           loss$backward()
           optimizer$step()
 
           model$eval()
           with_no_grad({
-            val_loss <- as.numeric(nn_mse_loss()(model(x_val), y_val)$to(device = "cpu"))
+            val_loss <- as.numeric(nn_mse_loss()(model(val_tensors$x), val_tensors$y)$to(device = "cpu"))
           })
           if (val_loss + 1e-8 < candidate_best_val) {
             candidate_best_val <- val_loss
-            candidate_best_state <- lapply(model$state_dict(), function(x) x$clone()$detach())
+            candidate_best_epoch <- epoch
             patience <- 0L
           } else {
             patience <- patience + 1L
@@ -106,20 +106,52 @@ run_torch_mlp_benchmark <- function(dt, feature_names, target_name, iteration_dt
 
         if (candidate_best_val + 1e-8 < best_val) {
           best_val <- candidate_best_val
-          best_state <- candidate_best_state
           best_lr <- lr
+          best_epoch <- candidate_best_epoch
         }
       }
+
+      x_center_full <- colMeans(x_mat[train_ids, , drop = FALSE])
+      x_scale_full <- apply(x_mat[train_ids, , drop = FALSE], 2, sd)
+      x_scale_full[is.na(x_scale_full) | x_scale_full == 0] <- 1
+      y_center_full <- mean(y_vec[train_ids])
+      y_scale_full <- sd(y_vec[train_ids])
+      if (is.na(y_scale_full) || y_scale_full == 0) {
+        y_scale_full <- 1
+      }
+
+      full_train_tensors <- make_scaled_tensors(train_ids, x_center_full, x_scale_full, y_center_full, y_scale_full)
+      final_model <- torch_mlp(input_dim = ncol(x_mat))
+      final_model$to(device = torch_device_obj)
+      final_optimizer <- optim_adamw(final_model$parameters, lr = best_lr, weight_decay = 1e-4)
+
+      for (epoch in seq_len(best_epoch)) {
+        final_model$train()
+        final_optimizer$zero_grad()
+        pred <- final_model(full_train_tensors$x)
+        loss <- nn_smooth_l1_loss()(pred, full_train_tensors$y)
+        loss$backward()
+        final_optimizer$step()
+      }
+
+      final_scaling <- list(
+        x_center = x_center_full,
+        x_scale = x_scale_full,
+        y_center = y_center_full,
+        y_scale = y_scale_full
+      )
     })[["elapsed"]]
 
-    model <- torch_mlp(input_dim = ncol(x_mat))
-    model$to(device = torch_device_obj)
-    model$load_state_dict(best_state)
-    model$eval()
+    test_tensors <- make_scaled_tensors(
+      test_ids,
+      final_scaling$x_center,
+      final_scaling$x_scale
+    )
+    final_model$eval()
     pred_vec <- with_no_grad({
-      as.numeric(model(x_test)$squeeze(2)$to(device = "cpu"))
+      as.numeric(final_model(test_tensors$x)$squeeze(2)$to(device = "cpu"))
     })
-    pred_vec <- pred_vec * y_scale + y_center
+    pred_vec <- pred_vec * final_scaling$y_scale + final_scaling$y_center
     metric_value <- sqrt(mean((pred_vec - y_vec[test_ids])^2))
 
     torch_raw_list[[iter_i]] <- data.table(
