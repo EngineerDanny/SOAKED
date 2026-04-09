@@ -192,7 +192,11 @@ figure <- ggplot(
   ) +
   theme_bw() +
   theme(
-    legend.position = "bottom",
+    legend.position = "inside",
+    legend.position.inside = c(0.88, 0.18),
+    legend.justification = c(1, 0),
+    legend.background = element_rect(fill = scales::alpha("white", 0.85), color = NA),
+    legend.key = element_rect(fill = scales::alpha("white", 0), color = NA),
     strip.background = element_rect(fill = "gray15"),
     strip.text = element_text(color = "white", face = "bold")
   )

@@ -14,8 +14,7 @@ sys.source(robustness_script, envir = robustness_env)
 robustness_plot <- robustness_env$figure +
   labs(title = "A) Learner Robustness Across Train-Subset Conditions") +
   theme(
-    plot.title = element_text(face = "bold", hjust = 0),
-    legend.position = "bottom"
+    plot.title = element_text(face = "bold", hjust = 0)
   )
 
 time_env <- new.env(parent = globalenv())
