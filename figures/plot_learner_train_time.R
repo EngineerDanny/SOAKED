@@ -58,7 +58,6 @@ figure <- ggplot() +
     data = mean_dt,
     aes(x = train_seconds_mean, y = learner_num, label = text_label),
     hjust = -0.2,
-    size = 3,
     color = "black"
   ) +
   scale_x_log10(
