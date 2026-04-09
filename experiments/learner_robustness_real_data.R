@@ -83,7 +83,7 @@ task <- TaskRegr$new(
   )],
   target = "log_AADT"
 )
-task$set_col_roles("subset_id", c("subset"))
+task$set_col_roles("subset_id", c("subset", "stratum"))
 metric <- msr("regr.rmse")
 
 all_raw <- list()
