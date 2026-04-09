@@ -203,7 +203,6 @@ with
 :=
 \widehat{\Delta}_t^{\mathrm{full}}(a,b)-\widehat{\Delta}_t^{\mathrm{match}}(a,b).
 \]
-For descriptive summaries, we also report signed percentage versions of the subset-effect and sample-size-effect components; these are defined in Appendix~\ref{sec:appendix-percentages}.
 \section{Results}
 
 \subsection{Learner robustness on the carbon-emissions traffic data}
@@ -350,29 +349,6 @@ i: all has intermediate accuracy.
 }
     \label{tab:placeholder}
 \end{table}
-
-\appendix
-
-\section{Appendix}
-\subsection{Signed percentage decomposition}
-\label{sec:appendix-percentages}
-For descriptive summaries, when $\widehat{\Delta}_t^{\mathrm{full}}(a,b)\neq 0$, we define the signed percentages
-\begin{equation}
-\widehat{P}_t^{\mathrm{subset}}(a,b)
-:=
-100\cdot
-\frac{\widehat{\Delta}_t^{\mathrm{subset}}(a,b)}
-{\widehat{\Delta}_t^{\mathrm{full}}(a,b)},
-\qquad
-\widehat{P}_t^{\mathrm{size}}(a,b)
-:=
-100\cdot
-\frac{\widehat{\Delta}_t^{\mathrm{size}}(a,b)}
-{\widehat{\Delta}_t^{\mathrm{full}}(a,b)}.
-\label{eq:pct-components}
-\end{equation}
-Because these percentages are signed, they can be negative or exceed $100$ when the subset and size components oppose one another.
-We report them only when the full-data gap is not too close to zero, because very small denominators make the decomposition unstable.
 
 \bibliographystyle{abbrvnat}
 \bibliography{refs}
