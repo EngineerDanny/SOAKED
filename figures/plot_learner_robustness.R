@@ -123,7 +123,6 @@ figure <- ggplot(
     aes(label = text_label),
     position = dodge,
     hjust = -0.2,
-    size = 3,
     show.legend = FALSE
   ) +
   geom_segment(
@@ -139,8 +138,7 @@ figure <- ggplot(
     inherit.aes = FALSE,
     color = "gray20",
     hjust = pvalue_dt$hjust_text,
-    vjust = 0.5,
-    size = 3
+    vjust = 0.5
   ) +
   facet_grid(test_subset ~ sample_size) +
   coord_flip() +
