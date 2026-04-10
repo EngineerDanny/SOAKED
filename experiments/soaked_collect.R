@@ -8,8 +8,8 @@ library(mlr3batchmark)
 # ---- Dataset configs ----
 dataset_configs <- list(
   nsch_autism = list(metric_id = "classif.auc", metric_col = "classif.auc"),
-  stl10       = list(metric_id = "classif.auc", metric_col = "classif.auc"),
-  waveform    = list(metric_id = "classif.auc", metric_col = "classif.auc"),
+  stl10       = list(metric_id = "classif.ce",  metric_col = "classif.ce"),
+  waveform    = list(metric_id = "classif.ce",  metric_col = "classif.ce"),
   traffic     = list(metric_id = "regr.rmse",   metric_col = "regr.rmse")
 )
 

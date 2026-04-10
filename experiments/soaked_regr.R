@@ -98,9 +98,12 @@ glmnet_lrn <- mlr3learners::LearnerRegrCVGlmnet$new()
 # ---- Benchmark grid ----
 bench_grid <- mlr3::benchmark_grid(task, glmnet_lrn, cv_down)
 
-on_hpc <- nchar(Sys.which("sbatch")) > 0L
+use_slurm <- identical(Sys.getenv("SOAKED_USE_SLURM"), "1")
+if (use_slurm && nchar(Sys.which("sbatch")) == 0L) {
+  stop("SOAKED_USE_SLURM=1 was set, but sbatch was not found on PATH.")
+}
 
-if (on_hpc) {
+if (use_slurm) {
   # ---- HPC: submit via SLURM job arrays ----
   reg_dir <- file.path(
     repo_root, "experiments",
@@ -120,7 +123,7 @@ if (on_hpc) {
     chunks,
     resources = list(
       walltime            = 60L * 60L,
-      memory              = 32000L,
+      memory              = 4000L,
       ncpus               = 1L,
       ntasks              = 1L,
       chunks.as.arrayjobs = TRUE
