@@ -17,7 +17,9 @@ dataset_configs <- list(
     log_target   = TRUE,
     log_source   = "AADT",
     drop_cols    = c("AADT"),
-    feature_cols = c("NTL", "POP", "ROAD_DENS", "S2_R", "S2_G", "S2_B", "S2_NIR")
+    feature_cols = c(
+      "NTL", "POP", "ROAD_DENS", "S2_R", "S2_G", "S2_B", "S2_NIR"
+    )
   )
 )
 
@@ -41,7 +43,9 @@ cfg <- dataset_configs[[dataset_name]]
 
 # ---- Paths ----
 script_arg  <- grep("^--file=", commandArgs(), value = TRUE)
-script_path <- normalizePath(sub("^--file=", "", script_arg[[1L]]), mustWork = TRUE)
+script_path <- normalizePath(
+  sub("^--file=", "", script_arg[[1L]]), mustWork = TRUE
+)
 repo_root   <- normalizePath(
   file.path(dirname(script_path), ".."), mustWork = TRUE
 )
