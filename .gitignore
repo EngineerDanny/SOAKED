@@ -19,3 +19,4 @@ TEX_RULES.md
 .RData
 AGENTS.md
 paper/SKILL.md
+.claude/*
