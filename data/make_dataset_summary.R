@@ -70,7 +70,8 @@ for (meta_i in seq_along(dataset_meta)) {
     Rows = nrow(dt),
     Features = ncol(dt) - 3L,
     `Subset imb.` = round(max(subset_counts$N) / min(subset_counts$N), 2),
-    Target = meta$target
+    Target = meta$target,
+    Task = meta$task
   )
 }
 
