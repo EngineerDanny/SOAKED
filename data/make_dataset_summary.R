@@ -76,6 +76,9 @@ for (meta_i in seq_along(dataset_meta)) {
 }
 
 summary_dt <- rbindlist(summary_list)
+summary_dt[, task_order := fifelse(Task == "Regression", 0L, 1L)]
+setorder(summary_dt, task_order, Dataset)
+summary_dt[, task_order := NULL]
 out_path <- file.path(data_dir, "dataset_summary.csv")
 fwrite(summary_dt, out_path)
 message(sprintf("Saved: %s", out_path))
