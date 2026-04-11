@@ -1,8 +1,8 @@
-Dataset,Task,Subsets,Subset levels,Rows,Features,Subset imb.,Target
-Different,Regression,2,large/small,600,1,2,y
-IID easy,Regression,2,large/small,120,1,2,y
-Traffic,Regression,2,Phoenix/Baltimore,128792,7,6.01,log(AADT)
-Workers compensation,Regression,2,Male/Female,100000,8,3.38,log(Ultimate incurred claim cost)
-NSCH autism,Classification,2,2019/2020,46010,362,1.53,Autism diagnosis
-STL10,Classification,2,test/train,13000,27648,1.6,Image class
-Waveform,Classification,2,test/train,800,21,1.67,Waveform class
+Dataset,Subset levels,Rows,Features,Subset imb.,Target
+NSCH autism,2019/2020,46010,362,1.53,Autism diagnosis
+STL10,test/train,13000,27648,1.6,Image class
+Waveform,test/train,800,21,1.67,Waveform class
+Traffic,Phoenix/Baltimore,128792,7,6.01,log(AADT)
+Workers compensation,Male/Female,100000,8,3.38,log(Ultimate incurred claim cost)
+Different,large/small,600,1,2,y
+IID easy,large/small,120,1,2,y
