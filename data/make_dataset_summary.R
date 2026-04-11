@@ -58,12 +58,17 @@ for (meta_i in seq_along(dataset_meta)) {
   in_path <- file.path(data_dir, meta$path)
   dt <- fread(in_path)
   subset_levels <- unique(dt$Subset)
+  subset_labels <- subset_levels
+  if (identical(meta$dataset, "Workers compensation")) {
+    subset_labels <- c("Male", "Female")
+  }
   subset_counts <- dt[, .N, by = Subset][match(subset_levels, Subset)]
 
   summary_list[[meta_i]] <- data.table(
     Dataset = meta$dataset,
     Task = meta$task,
-    `Subset levels` = paste(subset_counts$Subset, collapse = "/"),
+    Subsets = length(subset_labels),
+    `Subset levels` = paste(subset_labels, collapse = "/"),
     Rows = nrow(dt),
     Features = ncol(dt) - 3L,
     `Subset imb.` = round(max(subset_counts$N) / min(subset_counts$N), 2),
@@ -72,6 +77,9 @@ for (meta_i in seq_along(dataset_meta)) {
 }
 
 summary_dt <- rbindlist(summary_list)
+summary_dt[, task_order := fifelse(Task == "Regression", 0L, 1L)]
+setorder(summary_dt, task_order, Dataset)
+summary_dt[, task_order := NULL]
 out_path <- file.path(data_dir, "dataset_summary.csv")
 fwrite(summary_dt, out_path)
 message(sprintf("Saved: %s", out_path))
