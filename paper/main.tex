@@ -315,6 +315,29 @@ Ambiguous under unequal training sizes. The apparent advantage of Same may refle
 \bottomrule
 \end{tabular}
 \end{table}
+
+Table~\ref{tab:dataset-summary} summarizes the datasets used in our experiments, including the subset levels that define Same and Other, the number of observations and features after preprocessing, and the imbalance ratio between the largest and smallest subset.
+
+\begin{table*}[t]
+\centering
+\scriptsize
+\setlength{\tabcolsep}{3pt}
+\caption{Summary of data sets used in the experiments. Subset imbalance is the size ratio of the largest to the smallest subset.}
+\label{tab:dataset-summary}
+\begin{tabular}{p{0.20\linewidth}p{0.14\linewidth}rrrp{0.22\linewidth}l}
+\toprule
+\textbf{Dataset} & \textbf{Subset levels} & \textbf{Rows} & \textbf{Features} & \textbf{Subset imb.} & \textbf{Target} & \textbf{Task} \\
+\midrule
+Different & large/small & 600 & 1 & 2.00 & y & Regression \\
+IID easy & large/small & 120 & 1 & 2.00 & y & Regression \\
+Traffic & Phoenix/Baltimore & 128,792 & 7 & 6.01 & log(AADT) & Regression \\
+Workers' compensation & Male/Female & 100,000 & 8 & 3.38 & log(Ultimate incurred claim cost) & Regression \\
+NSCH autism & 2019/2020 & 46,010 & 362 & 1.53 & Autism diagnosis & Classification \\
+STL10 & test/train & 13,000 & 27,648 & 1.60 & Image class & Classification \\
+Waveform & test/train & 800 & 21 & 1.67 & Waveform class & Classification \\
+\bottomrule
+\end{tabular}
+\end{table*}
 \section{Results}
 
 \subsection{Learner robustness on the traffic data}
