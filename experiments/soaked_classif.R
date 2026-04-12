@@ -12,31 +12,40 @@ library(mlr3resampling)
 # y_factor   : if TRUE, convert target to factor
 dataset_configs <- list(
   nsch_autism = list(
-    file       = "NSCH_autism.csv",
-    subset_col = "survey_year",
-    target_col = "y",
+    file       = file.path("processed", "classification", "NSCH_autism.csv"),
+    subset_col = "Subset",
+    target_col = "Y",
+    fold_col   = "Fold",
     positive   = "Yes",
     y_factor   = TRUE,
     y_levels   = c("No", "Yes"),
-    drop_cols  = c("Unique_Household_ID", "Selected_Child_Weight")
+    drop_cols  = character(0L),
+    metric_id  = "classif.auc",
+    metric_col = "classif.auc"
   ),
   stl10 = list(
-    file       = "STL10.csv",
-    subset_col = "predefined.set",
-    target_col = "y",
+    file       = file.path("processed", "classification", "STL10.csv"),
+    subset_col = "Subset",
+    target_col = "Y",
+    fold_col   = "Fold",
     positive   = NULL,
     y_factor   = TRUE,
     y_levels   = NULL,
-    drop_cols  = character(0L)
+    drop_cols  = character(0L),
+    metric_id  = "classif.ce",
+    metric_col = "classif.ce"
   ),
   waveform = list(
-    file       = "waveform.csv",
-    subset_col = "predefined.set",
-    target_col = "y",
+    file       = file.path("processed", "classification", "waveform.csv"),
+    subset_col = "Subset",
+    target_col = "Y",
+    fold_col   = "Fold",
     positive   = NULL,
     y_factor   = TRUE,
     y_levels   = NULL,
-    drop_cols  = character(0L)
+    drop_cols  = character(0L),
+    metric_id  = "classif.ce",
+    metric_col = "classif.ce"
   )
 )
 
@@ -107,6 +116,9 @@ if (!is.null(cfg$positive)) {
 }
 task <- do.call(mlr3::TaskClassif$new, task_args)
 task$set_col_roles(cfg$subset_col, c("subset", "stratum"))
+if (!is.null(cfg$fold_col) && cfg$fold_col %in% names(dt)) {
+  task$col_roles$fold <- cfg$fold_col
+}
 
 # ---- Resampling ----
 cv_down <- mlr3resampling::ResamplingSameOtherSizesCV$new()
@@ -164,17 +176,17 @@ if (use_slurm) {
   message("  Done.")
 
   raw_dt <- as.data.table(
-    mlr3resampling::score(bench_result, mlr3::msr("classif.auc"))
+    mlr3resampling::score(bench_result, mlr3::msr(cfg$metric_id))
   )[, .(
     dataset_id     = dataset_name,
-    metric_id      = "classif.auc",
+    metric_id      = cfg$metric_id,
     learner        = "cv_glmnet",
     test_subset    = as.character(test.subset),
     train_subsets  = train.subsets,
     n_train_groups = n.train.groups,
     fold           = test.fold,
     seed,
-    metric_value   = classif.auc
+    metric_value   = get(cfg$metric_col)
   )]
 
   summary_dt <- raw_dt[, .(

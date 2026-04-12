@@ -306,6 +306,7 @@ Table~\ref{tab:dataset-summary} summarizes the datasets used in our experiments,
 \midrule
 Different & large/small & 600 & 1 & 2.00 & y & Regression \\
 IID easy & large/small & 120 & 1 & 2.00 & y & Regression \\
+qSIP & dim.control/qme.15 & 7,710 & 8,380 & 1.47 & growth\_per\_day & Regression \\
 Traffic & Phoenix/Baltimore & 128,792 & 7 & 6.01 & log(AADT) & Regression \\
 Workers' compensation & Male/Female & 100,000 & 8 & 3.38 & log(Ultimate incurred claim cost) & Regression \\
 NSCH autism & 2019/2020 & 46,010 & 362 & 1.53 & Autism diagnosis & Classification \\
@@ -488,7 +489,10 @@ Predicting the test split is largely explained by sample size (gaps collapse aft
 
 
 \subsection{qSIP regression data sets}
-TODO Dan and Jeff explain the data and results.
+For qSIP, we analyze a subset of the microbial biogeochemistry data restricted to the MC site and compare two experiment-treatment subsets: \texttt{dim.control} and \texttt{qme.15}.
+After preprocessing, the combined data set contains 7,710 observations, with 3,120 in \texttt{dim.control} and 4,590 in \texttt{qme.15}.
+The prediction target is \texttt{growth\_per\_day}, and the feature matrix contains 8,380 KEGG ortholog indicators derived from columns named \texttt{K*}.
+This gives a moderate subset imbalance ratio of 1.47, which makes the example relevant for SOAKED because the unequal subset sizes are large enough to confound naive Same versus Other comparisons while still leaving substantial data in both subsets after downsampling.
 
 \subsection{Regression data sets with gender subsets}
 % https://raw.githubusercontent.com/lamtung16/soak_regression/refs/heads/main/results/WorkersCompensation/Gender.csv

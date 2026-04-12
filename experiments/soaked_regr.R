@@ -11,15 +11,24 @@ library(mlr3resampling)
 # feature_cols : explicit feature list (NULL = all remaining columns)
 dataset_configs <- list(
   traffic = list(
-    file         = "traffic.csv",
-    subset_col   = "city_key",
-    target_col   = "log_AADT",
-    log_target   = TRUE,
-    log_source   = "AADT",
-    drop_cols    = c("AADT"),
-    feature_cols = c(
-      "NTL", "POP", "ROAD_DENS", "S2_R", "S2_G", "S2_B", "S2_NIR"
-    )
+    file         = file.path("processed", "regression", "traffic.csv"),
+    subset_col   = "Subset",
+    target_col   = "Y",
+    fold_col     = "Fold",
+    log_target   = FALSE,
+    drop_cols    = character(0L),
+    feature_cols = NULL
+  ),
+  qsip_dim.control_vs_qme.15 = list(
+    file         = file.path(
+      "processed", "regression", "qsip_dim.control_vs_qme.15.csv"
+    ),
+    subset_col   = "Subset",
+    target_col   = "Y",
+    fold_col     = "Fold",
+    log_target   = FALSE,
+    drop_cols    = character(0L),
+    feature_cols = NULL
   )
 )
 
@@ -85,6 +94,9 @@ if (!is.null(cfg$feature_cols)) {
   task$col_roles$feature <- cfg$feature_cols
 }
 task$set_col_roles(cfg$subset_col, c("subset", "stratum"))
+if (!is.null(cfg$fold_col) && cfg$fold_col %in% names(dt)) {
+  task$col_roles$fold <- cfg$fold_col
+}
 
 # ---- Resampling ----
 cv_down <- mlr3resampling::ResamplingSameOtherSizesCV$new()

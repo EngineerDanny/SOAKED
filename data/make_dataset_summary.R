@@ -26,6 +26,12 @@ dataset_meta <- list(
     target = "log(AADT)"
   ),
   list(
+    path = "processed/regression/qsip_dim.control_vs_qme.15.csv",
+    dataset = "qSIP",
+    task = "Regression",
+    target = "growth_per_day"
+  ),
+  list(
     path = "processed/regression/workers_compensation.csv",
     dataset = "Workers compensation",
     task = "Regression",

@@ -65,6 +65,17 @@ dataset_configs <- list(
       "NTL", "POP", "ROAD_DENS", "S2_R", "S2_G", "S2_B", "S2_NIR"
     )
   ),
+  list(
+    in_path         = "raw/regression/qsip_dim.control_vs_qme.15.csv",
+    out_path        = "processed/regression/qsip_dim.control_vs_qme.15.csv",
+    type            = "regr",
+    subset_col      = "subset_id",
+    target_col      = "growth_per_day",
+    drop_cols       = character(0L),
+    log_target      = FALSE,
+    feature_cols    = NULL,
+    feature_pattern = "^K"
+  ),
 
   # Simulation
   list(
@@ -95,6 +106,26 @@ script_path <- normalizePath(
   sub("^--file=", "", script_arg[[1L]]), mustWork = TRUE
 )
 data_dir <- dirname(script_path)
+
+args <- commandArgs(trailingOnly = TRUE)
+dataset_arg <- grep("^--dataset=", args, value = TRUE)
+selected_out_paths <- NULL
+if (length(dataset_arg) > 0L) {
+  selected_out_paths <- strsplit(
+    sub("^--dataset=", "", dataset_arg[[1L]]),
+    ",",
+    fixed = TRUE
+  )[[1L]]
+  selected_out_paths <- trimws(selected_out_paths)
+  selected_out_paths <- selected_out_paths[nzchar(selected_out_paths)]
+  dataset_configs <- Filter(
+    function(cfg) tools::file_path_sans_ext(basename(cfg$out_path)) %in% selected_out_paths,
+    dataset_configs
+  )
+  if (length(dataset_configs) == 0L) {
+    stop("No dataset configs matched --dataset=", sub("^--dataset=", "", dataset_arg[[1L]]))
+  }
+}
 
 # ---- Process each dataset ----
 for (cfg in dataset_configs) {
@@ -131,6 +162,8 @@ for (cfg in dataset_configs) {
   # Determine feature columns
   feat_cols <- if (!is.null(cfg$feature_cols)) {
     cfg$feature_cols
+  } else if (!is.null(cfg$feature_pattern)) {
+    grep(cfg$feature_pattern, names(dt), value = TRUE)
   } else {
     setdiff(names(dt), c(cfg$subset_col, target_col))
   }
