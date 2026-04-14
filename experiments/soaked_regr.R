@@ -100,6 +100,7 @@ dir.create(dirname(raw_output), recursive = TRUE, showWarnings = FALSE)
 # ---- Parameters ----
 default_n_folds <- 10L
 n_seeds <- 10L
+rng_seed <- 42L
 
 # ---- Load data ----
 message(sprintf("Loading %s...", dataset_name))
@@ -112,6 +113,7 @@ n_folds <- if (has_fold_col) {
 } else {
   default_n_folds
 }
+set.seed(rng_seed)
 
 if (isTRUE(cfg$log_target)) {
   dt[, (cfg$target_col) := log(get(cfg$log_source))]
@@ -164,7 +166,7 @@ if (use_slurm) {
   unlink(reg_dir, recursive = TRUE)
   reg <- batchtools::makeExperimentRegistry(
     file.dir = reg_dir,
-    seed     = 1L,
+    seed     = 42L,
     packages = "mlr3verse"
   )
   mlr3batchmark::batchmark(bench_grid, store_models = FALSE, reg = reg)

@@ -55,13 +55,12 @@ results_dir <- file.path(repo_root, "results")
 dir.create(results_dir, recursive = TRUE, showWarnings = FALSE)
 
 # ---- Adapt collected CSV to mlr3resampling score format ----
-raw_dt <- fread(raw_csv)
-if (length(unique(raw_dt$metric_id)) != 1L) {
+score_dt <- fread(raw_csv)
+if (length(unique(score_dt$metric_id)) != 1L) {
   stop("Expected exactly one metric_id in: ", raw_csv)
 }
-metric_id <- unique(raw_dt$metric_id)[[1L]]
+metric_id <- unique(score_dt$metric_id)[[1L]]
 
-score_dt <- copy(raw_dt)
 setnames(
   score_dt,
   old = c("test_subset", "train_subsets", "n_train_groups", "fold", "learner"),
@@ -71,23 +70,36 @@ score_dt[, task_id := dataset_id]
 score_dt[, (metric_id) := metric_value]
 score_dt[, groups := max(n.train.groups), by = .(test.subset, train.subsets)]
 
+# ---- Average over downsampling seeds before p-value computation ----
+# This keeps the summary statistics at the fold level and avoids treating
+# repeated seed realizations within a fold as independent replicates.
+seed_cols <- c(
+  "dataset_id", "task_id", "metric_id", "algorithm",
+  "test.subset", "train.subsets", "n.train.groups", "test.fold", "groups"
+)
+score_plot_dt <- score_dt[, .(
+  metric_value = mean(metric_value),
+  value_for_plot = mean(get(metric_id))
+), by = seed_cols]
+setnames(score_plot_dt, "value_for_plot", metric_id)
+
 required_cols <- c(
   "test.subset", "train.subsets", "n.train.groups", "test.fold",
   "groups", "algorithm", metric_id
 )
-missing_cols <- setdiff(required_cols, names(score_dt))
+missing_cols <- setdiff(required_cols, names(score_plot_dt))
 if (length(missing_cols) > 0L) {
   stop("Missing required plotting columns: ", paste(missing_cols, collapse = ", "))
 }
 
 # ---- Build package-owned p-value plots ----
-test_subsets <- unique(score_dt$test.subset)
+test_subsets <- unique(score_plot_dt$test.subset)
 plots <- vector("list", length(test_subsets))
 names(plots) <- test_subsets
 
 for (i in seq_along(test_subsets)) {
   subset_name <- test_subsets[[i]]
-  subset_dt <- score_dt[test.subset == subset_name]
+  subset_dt <- score_plot_dt[test.subset == subset_name]
   model_names <- unique(subset_dt$algorithm)
   if (length(model_names) != 1L) {
     stop(
@@ -104,7 +116,7 @@ for (i in seq_along(test_subsets)) {
     )
   } else {
     pvalue_obj <- mlr3resampling::pvalue_downsample(
-      score_dt,
+      score_plot_dt,
       subset_name,
       model_names[[1L]]
     )
