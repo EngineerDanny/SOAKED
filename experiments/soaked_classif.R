@@ -84,13 +84,20 @@ sum_output <- file.path(
 dir.create(dirname(raw_output), recursive = TRUE, showWarnings = FALSE)
 
 # ---- Parameters ----
-n_folds <- 10L
+default_n_folds <- 10L
 n_seeds <- 10L
 
 # ---- Load data ----
 message(sprintf("Loading %s...", dataset_name))
 dt <- fread(data_path)
 message(sprintf("  %d rows, %d columns", nrow(dt), ncol(dt)))
+
+has_fold_col <- !is.null(cfg$fold_col) && cfg$fold_col %in% names(dt)
+n_folds <- if (has_fold_col) {
+  uniqueN(dt[[cfg$fold_col]])
+} else {
+  default_n_folds
+}
 
 if (length(cfg$drop_cols) > 0L) {
   dt[, (cfg$drop_cols) := NULL]
@@ -115,9 +122,12 @@ if (!is.null(cfg$positive)) {
   task_args$positive <- cfg$positive
 }
 task <- do.call(mlr3::TaskClassif$new, task_args)
-task$set_col_roles(cfg$subset_col, c("subset", "stratum"))
-if (!is.null(cfg$fold_col) && cfg$fold_col %in% names(dt)) {
+task$set_col_roles(cfg$subset_col, "subset")
+if (has_fold_col) {
   task$col_roles$fold <- cfg$fold_col
+  task$col_roles$stratum <- c(cfg$fold_col, cfg$target_col)
+} else {
+  task$col_roles$stratum <- c(cfg$subset_col, cfg$target_col)
 }
 
 # ---- Resampling ----
@@ -158,7 +168,7 @@ if (use_slurm) {
     chunks,
     resources = list(
       walltime            = 60L * 60L,
-      memory              = 4000L,
+      memory              = 16000L,
       ncpus               = 1L,
       ntasks              = 1L,
       chunks.as.arrayjobs = TRUE

@@ -7,10 +7,14 @@ library(mlr3batchmark)
 
 # ---- Dataset configs ----
 dataset_configs <- list(
-  nsch_autism = list(metric_id = "classif.auc", metric_col = "classif.auc"),
-  stl10       = list(metric_id = "classif.ce",  metric_col = "classif.ce"),
-  waveform    = list(metric_id = "classif.ce",  metric_col = "classif.ce"),
-  traffic     = list(metric_id = "regr.rmse",   metric_col = "regr.rmse")
+  nsch_autism                 = list(metric_id = "classif.auc", metric_col = "classif.auc"),
+  stl10                       = list(metric_id = "classif.ce",  metric_col = "classif.ce"),
+  waveform                    = list(metric_id = "classif.ce",  metric_col = "classif.ce"),
+  traffic                     = list(metric_id = "regr.rmse",   metric_col = "regr.rmse"),
+  qsip_dim.control_vs_qme.15  = list(metric_id = "regr.rmse",   metric_col = "regr.rmse"),
+  workers_compensation        = list(metric_id = "regr.rmse",   metric_col = "regr.rmse"),
+  different                   = list(metric_id = "regr.rmse",   metric_col = "regr.rmse"),
+  iid_easy                    = list(metric_id = "regr.rmse",   metric_col = "regr.rmse")
 )
 
 # ---- Parse --dataset argument ----

@@ -29,6 +29,35 @@ dataset_configs <- list(
     log_target   = FALSE,
     drop_cols    = character(0L),
     feature_cols = NULL
+  ),
+  workers_compensation = list(
+    file         = file.path(
+      "processed", "regression", "workers_compensation.csv"
+    ),
+    subset_col   = "Subset",
+    target_col   = "Y",
+    fold_col     = "Fold",
+    log_target   = FALSE,
+    drop_cols    = character(0L),
+    feature_cols = NULL
+  ),
+  different = list(
+    file         = file.path("processed", "simulation", "different.csv"),
+    subset_col   = "Subset",
+    target_col   = "Y",
+    fold_col     = "Fold",
+    log_target   = FALSE,
+    drop_cols    = character(0L),
+    feature_cols = NULL
+  ),
+  iid_easy = list(
+    file         = file.path("processed", "simulation", "iid_easy.csv"),
+    subset_col   = "Subset",
+    target_col   = "Y",
+    fold_col     = "Fold",
+    log_target   = FALSE,
+    drop_cols    = character(0L),
+    feature_cols = NULL
   )
 )
 
@@ -69,13 +98,20 @@ sum_output <- file.path(
 dir.create(dirname(raw_output), recursive = TRUE, showWarnings = FALSE)
 
 # ---- Parameters ----
-n_folds <- 10L
+default_n_folds <- 10L
 n_seeds <- 10L
 
 # ---- Load data ----
 message(sprintf("Loading %s...", dataset_name))
 dt <- fread(data_path)
 message(sprintf("  %d rows, %d columns", nrow(dt), ncol(dt)))
+
+has_fold_col <- !is.null(cfg$fold_col) && cfg$fold_col %in% names(dt)
+n_folds <- if (has_fold_col) {
+  uniqueN(dt[[cfg$fold_col]])
+} else {
+  default_n_folds
+}
 
 if (isTRUE(cfg$log_target)) {
   dt[, (cfg$target_col) := log(get(cfg$log_source))]
@@ -93,9 +129,12 @@ task <- mlr3::TaskRegr$new(
 if (!is.null(cfg$feature_cols)) {
   task$col_roles$feature <- cfg$feature_cols
 }
-task$set_col_roles(cfg$subset_col, c("subset", "stratum"))
-if (!is.null(cfg$fold_col) && cfg$fold_col %in% names(dt)) {
+task$set_col_roles(cfg$subset_col, "subset")
+if (has_fold_col) {
   task$col_roles$fold <- cfg$fold_col
+  task$col_roles$stratum <- cfg$fold_col
+} else {
+  task$col_roles$stratum <- cfg$subset_col
 }
 
 # ---- Resampling ----
@@ -135,7 +174,7 @@ if (use_slurm) {
     chunks,
     resources = list(
       walltime            = 60L * 60L,
-      memory              = 4000L,
+      memory              = 16000L,
       ncpus               = 1L,
       ntasks              = 1L,
       chunks.as.arrayjobs = TRUE

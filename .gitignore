@@ -22,6 +22,4 @@ paper/SKILL.md
 .claude/*
 legacy/
 .codex
-/experiments/traffic_glmnet_registry/
-/experiments/waveform_glmnet_registry/
-/experiments/nsch_autism_glmnet_registry/
+/experiments/*_registry/
