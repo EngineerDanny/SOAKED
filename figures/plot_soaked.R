@@ -16,6 +16,18 @@ dataset_configs <- list(
   ),
   traffic = list(
     metric_label = "Test RMSE on log(AADT) (mean\u00b1SD, CV folds)"
+  ),
+  qsip_dim.control_vs_qme.15 = list(
+    metric_label = "Test RMSE on growth_per_day (mean\u00b1SD, CV folds)"
+  ),
+  workers_compensation = list(
+    metric_label = "Test RMSE on log(UltimateIncurredClaimCost) (mean\u00b1SD, CV folds)"
+  ),
+  different = list(
+    metric_label = "Test RMSE (mean\u00b1SD, CV folds)"
+  ),
+  iid_easy = list(
+    metric_label = "Test RMSE (mean\u00b1SD, CV folds)"
   )
 )
 

@@ -78,9 +78,6 @@ data_path  <- file.path(repo_root, "data", cfg$file)
 raw_output <- file.path(
   repo_root, "results", sprintf("%s_glmnet_runs.csv", dataset_name)
 )
-sum_output <- file.path(
-  repo_root, "results", sprintf("%s_glmnet_summary.csv", dataset_name)
-)
 dir.create(dirname(raw_output), recursive = TRUE, showWarnings = FALSE)
 
 # ---- Parameters ----
@@ -201,18 +198,6 @@ if (use_slurm) {
     metric_value   = get(cfg$metric_col)
   )]
 
-  summary_dt <- raw_dt[, .(
-    metric_mean = mean(metric_value),
-    metric_sd   = sd(metric_value),
-    metric_se   = sd(metric_value) / sqrt(.N),
-    n_runs      = .N
-  ), by = .(
-    dataset_id, metric_id, learner,
-    test_subset, train_subsets, n_train_groups
-  )]
-
-  fwrite(raw_dt,     raw_output)
-  fwrite(summary_dt, sum_output)
+  fwrite(raw_dt, raw_output)
   message("Saved: ", raw_output)
-  message("Saved: ", sum_output)
 }
