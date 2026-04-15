@@ -5,27 +5,35 @@ default_output_tag <- "glmnet"
 
 dataset_configs <- list(
   nsch_autism = list(
+    display_name = "nsch_autism",
     metric_label = "Test set AUC = Area Under the ROC Curve (mean±SD, 10 CV folds)"
   ),
   stl10 = list(
+    display_name = "stl10",
     metric_label = "Test classification error rate (mean±SD, 10 CV folds)"
   ),
   waveform = list(
+    display_name = "waveform",
     metric_label = "Test classification error rate (mean±SD, 10 CV folds)"
   ),
   traffic = list(
+    display_name = "traffic",
     metric_label = "Test RMSE on log(AADT) (mean±SD, 10 CV folds)"
   ),
   qsip_dim.control_vs_qme.15 = list(
+    display_name = "qsip",
     metric_label = "Test RMSE on growth_per_day (mean±SD, 10 CV folds)"
   ),
   workers_compensation = list(
+    display_name = "workers_compensation",
     metric_label = "Test RMSE on log(UltimateIncurredClaimCost) (mean±SD, 10 CV folds)"
   ),
   different = list(
+    display_name = "different",
     metric_label = "Test RMSE (mean±SD, 10 CV folds)"
   ),
   iid_easy = list(
+    display_name = "iid_easy",
     metric_label = "Test RMSE (mean±SD, 10 CV folds)"
   )
 )
@@ -77,7 +85,11 @@ pair_specs <- lapply(pair_args, function(x) {
   list(
     dataset = dataset_name,
     test_subset = subset_name,
-    pair_label = sprintf("dataset: %s, test_subset: %s", dataset_name, subset_name)
+    pair_label = sprintf(
+      "dataset: %s, test_subset: %s",
+      dataset_configs[[dataset_name]]$display_name,
+      subset_name
+    )
   )
 })
 
@@ -226,7 +238,15 @@ pvalue_summary <- pvalue_wide[, .(
 ), by = .(pair_label, sample_size)]
 pvalue_summary[, `:=`(
   y_label = "same-other",
-  label = ifelse(is.na(p_value), "P=NA", sprintf("P=%.4f", p_value)),
+  label = fifelse(
+    is.na(p_value),
+    "P = NA",
+    fifelse(
+      p_value < 1e-4,
+      "P < 0.0001",
+      sprintf("P = %.4f", p_value)
+    )
+  ),
   x_mid = (x_min + x_max) / 2
 )]
 
@@ -239,13 +259,39 @@ plot_anno_dt <- rbindlist(
   fill = TRUE
 )
 
-x_span <- diff(range(
-  c(plot_anno_dt$x_min, plot_anno_dt$x_max, summary_dt$mean_value),
-  na.rm = TRUE
-))
-if (!is.finite(x_span) || x_span <= 0) {
-  x_span <- 1
-}
+panel_range_dt <- plot_anno_dt[, .(
+  panel_x_min = min(c(x_min, x_max, mean_value), na.rm = TRUE),
+  panel_x_max = max(c(x_min, x_max, mean_value), na.rm = TRUE)
+), by = .(pair_label, sample_size)]
+panel_range_dt[, panel_span := panel_x_max - panel_x_min]
+panel_range_dt[!is.finite(panel_span) | panel_span <= 0, panel_span := 1]
+
+summary_dt <- merge(
+  summary_dt,
+  panel_range_dt,
+  by = c("pair_label", "sample_size"),
+  all.x = TRUE
+)
+summary_dt[, `:=`(
+  left_room = mean_value - panel_x_min,
+  right_room = panel_x_max - mean_value
+)]
+summary_dt[, label_side := ifelse(
+  right_room >= left_room + 0.15 * panel_span,
+  "right",
+  "left"
+)]
+summary_dt[, label_offset := 0.02 * panel_span]
+summary_dt[, label_x := ifelse(
+  label_side == "right",
+  mean_value + label_offset,
+  mean_value - label_offset
+)]
+summary_dt[, label_hjust := ifelse(label_side == "right", 0, 1)]
+summary_dt[grepl("^dataset: workers_compensation,", pair_label), `:=`(
+  label_x = mean_value,
+  label_hjust = 0.5
+)]
 
 pair_plot <- ggplot() +
   geom_segment(
@@ -265,9 +311,10 @@ pair_plot <- ggplot() +
   geom_text(
     data = summary_dt[y_label %in% c("other", "same")],
     aes(
-      x = mean_value,
+      x = label_x,
       y = y_label,
-      label = label
+      label = label,
+      hjust = label_hjust
     ),
     vjust = -0.5
   ) +
@@ -278,25 +325,35 @@ pair_plot <- ggplot() +
       xend = x_max,
       y = y_label,
       yend = y_label
-    )
+    ),
+    color = "grey50"
   ) +
   geom_text(
     data = pvalue_summary,
     aes(x = x_mid, y = y_label, label = label),
-    vjust = -0.5
+    vjust = -0.5,
+    color = "grey50"
   ) +
   facet_grid(rows = vars(sample_size), cols = vars(pair_label), scales = "free_x") +
   scale_y_discrete(limits = c("other", "same-other", "same")) +
-  scale_x_continuous(expand = expansion(mult = c(0.03, 0.06))) +
+  scale_x_continuous(expand = expansion(mult = c(0.12, 0.12))) +
   labs(
     x = x_axis_label,
     y = "Train subsets"
+  ) +
+  theme_bw(base_size = 11) +
+  theme(
+    panel.grid.minor = element_blank(),
+    strip.background = element_rect(fill = "grey90", color = "grey40"),
+    strip.text = element_text(color = "grey20"),
+    axis.title.x = element_text(margin = margin(t = 8)),
+    axis.title.y = element_text(margin = margin(r = 8))
   )
 
 png(
   out_png,
-  width = max(8, 5.5 * length(pair_specs)),
-  height = 7,
+  width = max(7.2, 4.8 * length(pair_specs)),
+  height = 3.9,
   units = "in",
   res = 300
 )
