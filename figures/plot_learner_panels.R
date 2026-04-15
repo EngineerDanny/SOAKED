@@ -1,5 +1,7 @@
 library(patchwork)
 
+text_size_ratio <- 1.2
+
 script_arg <- grep("^--file=", commandArgs(), value = TRUE)
 script_path <- normalizePath(sub("^--file=", "", script_arg[[1L]]), mustWork = TRUE)
 repo_root <- normalizePath(file.path(dirname(script_path), ".."), mustWork = TRUE)
@@ -28,5 +30,5 @@ time_plot <- time_env$figure +
 combined_plot <- (robustness_plot / time_plot) +
   plot_layout(heights = c(1.45, 1.4))
 
-ggsave(output_png, combined_plot, width = 13.5, height = 6.5, dpi = 300, bg = "white")
+ggsave(output_png, combined_plot, width = 18, height = 8, units = "in", dpi = 300, bg = "white")
 file.copy(output_png, paper_png, overwrite = TRUE)

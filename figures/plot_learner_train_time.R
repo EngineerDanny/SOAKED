@@ -1,5 +1,6 @@
 library(data.table)
 library(ggplot2)
+if (!exists("text_size_ratio")) text_size_ratio <- 1
 
 script_arg <- grep("^--file=", commandArgs(), value = TRUE)
 script_path <- normalizePath(sub("^--file=", "", script_arg[[1L]]), mustWork = TRUE)
@@ -13,10 +14,10 @@ run_dt <- fread(input_csv)
 run_dt <- run_dt[learner != "random_forest"]
 
 learner_labels <- c(
-  featureless = "Featureless",
+  featureless = "featureless",
   rpart = "rpart",
   glmnet = "glmnet",
-  torch_mlp = "Deep neural network"
+  torch_mlp = "deep neural network"
 )
 run_dt[, learner := factor(learner, levels = names(learner_labels), labels = unname(learner_labels))]
 run_dt <- unique(run_dt, by = c("learner", "iteration", "train_seconds"))
@@ -46,22 +47,6 @@ figure <- ggplot() +
     color = "gray40",
     alpha = 0.5
   ) +
-  geom_point(
-    data = mean_dt,
-    aes(x = train_seconds_plot, y = learner_num),
-    shape = 21,
-    fill = "white",
-    color = "black",
-    size = 2.2,
-    stroke = 0.8
-  ) +
-  geom_text(
-    data = mean_dt,
-    aes(x = train_seconds_plot, y = learner_num, label = text_label),
-    hjust = -0.2,
-    vjust = 1.2,
-    color = "black"
-  ) +
   scale_x_continuous(
     limits = c(log10(epsilon), max(run_dt$train_seconds_plot) + 0.08),
     breaks = log10(time_breaks + epsilon),
@@ -77,7 +62,10 @@ figure <- ggplot() +
     x = "Training Time Per Run (s, log-scaled)",
     y = NULL
   ) +
-  theme_bw()
+  theme_bw(base_size = 11 * text_size_ratio) +
+  theme(
+    axis.text.y = element_text(size = 13 * text_size_ratio)
+  )
 
 ggsave(output_png, figure, width = 7.5, height = 3.8, dpi = 300, bg = "white")
 file.copy(output_png, paper_png, overwrite = TRUE)

@@ -1,5 +1,6 @@
 library(data.table)
 library(ggplot2)
+if (!exists("text_size_ratio")) text_size_ratio <- 1
 
 script_arg <- grep("^--file=", commandArgs(), value = TRUE)
 script_path <- normalizePath(sub("^--file=", "", script_arg[[1L]]), mustWork = TRUE)
@@ -37,10 +38,10 @@ panel_dt <- dcast(
 )
 
 learner_labels <- c(
-  featureless = "Featureless",
+  featureless = "featureless",
   rpart = "rpart",
   glmnet = "glmnet",
-  torch_mlp = "Deep neural network"
+  torch_mlp = "deep neural network"
 )
 plot_dt[, learner := factor(learner, levels = names(learner_labels), labels = unname(learner_labels))]
 raw_dt[, learner := factor(learner, levels = names(learner_labels), labels = unname(learner_labels))]
@@ -87,8 +88,8 @@ panel_dt[, n_label := ifelse(
 x_min <- min(plot_dt$metric_mean - plot_dt$metric_se)
 x_max <- max(plot_dt$metric_mean + plot_dt$metric_se)
 x_range <- x_max - x_min
-x_lower <- x_min - 0.24 * x_range
-x_upper <- x_max + 0.20 * x_range
+x_lower <- x_min - 0.24 * x_range * text_size_ratio
+x_upper <- x_max + 0.35 * x_range * text_size_ratio
 
 subset_colors <- c(same = "red", other = "blue")
 subset_labels <- c(same = "Same", other = "Other")
@@ -141,6 +142,7 @@ figure <- ggplot(
     aes(label = text_label),
     position = dodge,
     hjust = -0.2,
+    size = 3.88 * text_size_ratio,
     show.legend = FALSE
   ) +
   geom_segment(
@@ -156,15 +158,17 @@ figure <- ggplot(
     inherit.aes = FALSE,
     color = "gray20",
     hjust = pvalue_dt$hjust_text,
-    vjust = 0.5
+    vjust = 0.5,
+    size = 3.88 * text_size_ratio
   ) +
   geom_text(
     data = panel_dt,
-    aes(x = "Featureless", y = x_lower + 0.01 * x_range, label = n_label),
+    aes(x = "featureless", y = x_lower + 0.01 * x_range, label = n_label),
     inherit.aes = FALSE,
     color = "gray20",
     hjust = 0,
-    vjust = 0
+    vjust = 0,
+    size = 3.88 * text_size_ratio
   ) +
   facet_grid(test_subset ~ sample_size) +
   coord_flip() +
@@ -187,18 +191,17 @@ figure <- ggplot(
   ) +
   labs(
     x = NULL,
-    y = "Test RMSE on log(AADT), mean ± SE across 5 CV splits",
+    y = "Test RMSE (mean\u00b1SE, 5 CV folds)",
     color = NULL
   ) +
-  theme_bw() +
+  theme_bw(base_size = 11 * text_size_ratio) +
   theme(
+    axis.text.y = element_text(size = 13 * text_size_ratio),
     legend.position = "inside",
-    legend.position.inside = c(0.88, 0.18),
+    legend.position.inside = c(0.99, 0.01),
     legend.justification = c(1, 0),
     legend.background = element_rect(fill = scales::alpha("white", 0.85), color = NA),
     legend.key = element_rect(fill = scales::alpha("white", 0), color = NA),
-    strip.background = element_rect(fill = "gray15"),
-    strip.text = element_text(color = "white", face = "bold")
   )
 
 ggsave(output_png, figure, width = 15, height = 6, dpi = 300, bg = "white")
