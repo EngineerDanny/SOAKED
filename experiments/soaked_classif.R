@@ -3,8 +3,7 @@ library(mlr3)
 library(mlr3learners)
 library(mlr3resampling)
 
-learner_id <- "rpart"
-output_tag <- "rpart"
+supported_learners <- c("rpart", "cv.glmnet")
 
 # ---- Dataset configs ----
 # Each entry defines how to load and set up one classification dataset.
@@ -52,12 +51,13 @@ dataset_configs <- list(
   )
 )
 
-# ---- Parse --dataset argument ----
+# ---- Parse arguments ----
 args <- commandArgs(trailingOnly = TRUE)
+
 dataset_arg <- grep("^--dataset=", args, value = TRUE)
 if (length(dataset_arg) == 0L) {
   stop(sprintf(
-    "Usage: Rscript soaked_classif.R --dataset=<name>\nAvailable: %s",
+    "Usage: Rscript soaked_classif.R --dataset=<name> [--learner=<rpart|cv.glmnet>]\nAvailable datasets: %s",
     paste(names(dataset_configs), collapse = ", ")
   ))
 }
@@ -69,6 +69,20 @@ if (!dataset_name %in% names(dataset_configs)) {
   ))
 }
 cfg <- dataset_configs[[dataset_name]]
+
+learner_arg <- grep("^--learner=", args, value = TRUE)
+learner_id  <- if (length(learner_arg) > 0L) {
+  sub("^--learner=", "", learner_arg[[1L]])
+} else {
+  "rpart"
+}
+if (!learner_id %in% supported_learners) {
+  stop(sprintf(
+    "Unknown learner '%s'. Available: %s",
+    learner_id, paste(supported_learners, collapse = ", ")
+  ))
+}
+output_tag <- learner_id
 
 # ---- Paths ----
 script_arg  <- grep("^--file=", commandArgs(), value = TRUE)
@@ -139,7 +153,11 @@ cv_down$param_set$values$seeds <- n_seeds
 cv_down$param_set$values$sizes <- 0L
 
 # ---- Learner ----
-learner <- mlr3::lrn("classif.rpart")
+learner <- if (learner_id == "cv.glmnet") {
+  mlr3::lrn("classif.cv_glmnet")
+} else {
+  mlr3::lrn("classif.rpart")
+}
 learner$predict_type <- "prob"
 
 # ---- Benchmark grid ----
@@ -169,7 +187,7 @@ if (use_slurm) {
   batchtools::submitJobs(
     chunks,
     resources = list(
-      walltime            = 2L * 60L * 60L,
+      walltime            = 1L * 60L * 60L,
       memory              = 24000L,
       ncpus               = 1L,
       ntasks              = 1L,

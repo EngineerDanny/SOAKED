@@ -5,8 +5,7 @@ library(mlr3resampling)
 library(batchtools)
 library(mlr3batchmark)
 
-learner_id <- "rpart"
-output_tag <- "rpart"
+supported_learners <- c("rpart", "cv.glmnet")
 
 # ---- Dataset configs ----
 dataset_configs <- list(
@@ -20,12 +19,13 @@ dataset_configs <- list(
   iid_easy                    = list(metric_id = "regr.rmse",   metric_col = "regr.rmse")
 )
 
-# ---- Parse --dataset argument ----
+# ---- Parse arguments ----
 args <- commandArgs(trailingOnly = TRUE)
+
 dataset_arg <- grep("^--dataset=", args, value = TRUE)
 if (length(dataset_arg) == 0L) {
   stop(sprintf(
-    "Usage: Rscript soaked_collect.R --dataset=<name>\nAvailable: %s",
+    "Usage: Rscript soaked_collect.R --dataset=<name> [--learner=<rpart|cv.glmnet>]\nAvailable datasets: %s",
     paste(names(dataset_configs), collapse = ", ")
   ))
 }
@@ -37,6 +37,20 @@ if (!dataset_name %in% names(dataset_configs)) {
   ))
 }
 cfg <- dataset_configs[[dataset_name]]
+
+learner_arg <- grep("^--learner=", args, value = TRUE)
+learner_id  <- if (length(learner_arg) > 0L) {
+  sub("^--learner=", "", learner_arg[[1L]])
+} else {
+  "rpart"
+}
+if (!learner_id %in% supported_learners) {
+  stop(sprintf(
+    "Unknown learner '%s'. Available: %s",
+    learner_id, paste(supported_learners, collapse = ", ")
+  ))
+}
+output_tag <- learner_id
 
 # ---- Paths ----
 script_arg  <- grep("^--file=", commandArgs(), value = TRUE)

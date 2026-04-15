@@ -6,7 +6,7 @@ default_output_tag <- "glmnet"
 dataset_configs <- list(
   nsch_autism = list(
     display_name = "nsch_autism",
-    metric_label = "Test set AUC = Area Under the ROC Curve (mean±SD, 10 CV folds)"
+    metric_label = "Test classification error rate (mean±SD, 10 CV folds)"
   ),
   stl10 = list(
     display_name = "stl10",
