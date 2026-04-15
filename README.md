@@ -90,9 +90,11 @@ Submit jobs one by one:
 SOAKED_USE_SLURM=1 /projects/genomic-ml/da2343/soak-r/bin/Rscript /projects/genomic-ml/da2343/SOAKED/experiments/soaked_classif.R --dataset=nsch_autism
 SOAKED_USE_SLURM=1 /projects/genomic-ml/da2343/soak-r/bin/Rscript /projects/genomic-ml/da2343/SOAKED/experiments/soaked_classif.R --dataset=stl10
 SOAKED_USE_SLURM=1 /projects/genomic-ml/da2343/soak-r/bin/Rscript /projects/genomic-ml/da2343/SOAKED/experiments/soaked_classif.R --dataset=waveform
+
 SOAKED_USE_SLURM=1 /projects/genomic-ml/da2343/soak-r/bin/Rscript /projects/genomic-ml/da2343/SOAKED/experiments/soaked_regr.R --dataset=traffic
 SOAKED_USE_SLURM=1 /projects/genomic-ml/da2343/soak-r/bin/Rscript /projects/genomic-ml/da2343/SOAKED/experiments/soaked_regr.R --dataset=qsip_dim.control_vs_qme.15
 SOAKED_USE_SLURM=1 /projects/genomic-ml/da2343/soak-r/bin/Rscript /projects/genomic-ml/da2343/SOAKED/experiments/soaked_regr.R --dataset=workers_compensation
+
 SOAKED_USE_SLURM=1 /projects/genomic-ml/da2343/soak-r/bin/Rscript /projects/genomic-ml/da2343/SOAKED/experiments/soaked_regr.R --dataset=different
 SOAKED_USE_SLURM=1 /projects/genomic-ml/da2343/soak-r/bin/Rscript /projects/genomic-ml/da2343/SOAKED/experiments/soaked_regr.R --dataset=iid_easy
 ```
