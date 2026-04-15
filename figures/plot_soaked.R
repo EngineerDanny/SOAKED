@@ -3,6 +3,8 @@ library(ggplot2)
 library(grid)
 library(mlr3resampling)
 
+output_tag <- "rpart"
+
 # ---- Dataset configs ----
 dataset_configs <- list(
   nsch_autism = list(
@@ -57,7 +59,7 @@ repo_root   <- normalizePath(
 )
 
 raw_csv <- file.path(
-  repo_root, "results", sprintf("%s_glmnet_runs.csv", dataset_name)
+  repo_root, "results", sprintf("%s_%s_runs.csv", dataset_name, output_tag)
 )
 if (!file.exists(raw_csv)) {
   stop("Run file not found: ", raw_csv)
@@ -133,6 +135,7 @@ for (i in seq_along(test_subsets)) {
       model_names[[1L]]
     )
   }
+
   plots[[i]] <- plot(pvalue_obj) +
     labs(
       title = sprintf(
@@ -145,7 +148,7 @@ for (i in seq_along(test_subsets)) {
 
 # ---- Combine test subsets into one figure ----
 out_png <- file.path(
-  results_dir, sprintf("%s_glmnet_pvalue_downsample.png", dataset_name)
+  results_dir, sprintf("%s_%s_pvalue_downsample.png", dataset_name, output_tag)
 )
 
 plot_height <- max(4, 4 * length(plots))

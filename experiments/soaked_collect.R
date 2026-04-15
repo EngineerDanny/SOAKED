@@ -5,6 +5,9 @@ library(mlr3resampling)
 library(batchtools)
 library(mlr3batchmark)
 
+learner_id <- "rpart"
+output_tag <- "rpart"
+
 # ---- Dataset configs ----
 dataset_configs <- list(
   nsch_autism                 = list(metric_id = "classif.auc", metric_col = "classif.auc"),
@@ -43,10 +46,10 @@ repo_root   <- normalizePath(
 )
 
 reg_dir    <- file.path(
-  repo_root, "experiments", sprintf("%s_glmnet_registry", dataset_name)
+  repo_root, "experiments", sprintf("%s_%s_registry", dataset_name, output_tag)
 )
 raw_output <- file.path(
-  repo_root, "results", sprintf("%s_glmnet_runs.csv", dataset_name)
+  repo_root, "results", sprintf("%s_%s_runs.csv", dataset_name, output_tag)
 )
 dir.create(dirname(raw_output), recursive = TRUE, showWarnings = FALSE)
 
@@ -81,7 +84,7 @@ score_dt <- as.data.table(mlr3resampling::score(bench_result, msr_obj))
 raw_dt <- score_dt[, .(
   dataset_id     = dataset_name,
   metric_id      = cfg$metric_id,
-  learner        = "cv_glmnet",
+  learner        = learner_id,
   test_subset    = as.character(test.subset),
   train_subsets  = train.subsets,
   n_train_groups = n.train.groups,

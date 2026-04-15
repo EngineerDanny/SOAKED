@@ -3,6 +3,9 @@ library(mlr3)
 library(mlr3learners)
 library(mlr3resampling)
 
+learner_id <- "rpart"
+output_tag <- "rpart"
+
 # ---- Dataset configs ----
 # Each entry defines how to load and set up one classification dataset.
 # subset_col : column used as SOAKED subset label
@@ -76,13 +79,13 @@ repo_root   <- normalizePath(
 
 data_path  <- file.path(repo_root, "data", cfg$file)
 raw_output <- file.path(
-  repo_root, "results", sprintf("%s_glmnet_runs.csv", dataset_name)
+  repo_root, "results", sprintf("%s_%s_runs.csv", dataset_name, output_tag)
 )
 dir.create(dirname(raw_output), recursive = TRUE, showWarnings = FALSE)
 
 # ---- Parameters ----
 default_n_folds <- 10L
-n_seeds <- 10L
+n_seeds <- 1L
 rng_seed <- 42L
 
 # ---- Load data ----
@@ -136,11 +139,11 @@ cv_down$param_set$values$seeds <- n_seeds
 cv_down$param_set$values$sizes <- 0L
 
 # ---- Learner ----
-glmnet_lrn <- mlr3learners::LearnerClassifCVGlmnet$new()
-glmnet_lrn$predict_type <- "prob"
+learner <- mlr3::lrn("classif.rpart")
+learner$predict_type <- "prob"
 
 # ---- Benchmark grid ----
-bench_grid <- mlr3::benchmark_grid(task, glmnet_lrn, cv_down)
+bench_grid <- mlr3::benchmark_grid(task, learner, cv_down)
 
 use_slurm <- identical(Sys.getenv("SOAKED_USE_SLURM"), "1")
 if (use_slurm && nchar(Sys.which("sbatch")) == 0L) {
@@ -151,7 +154,7 @@ if (use_slurm) {
   # ---- HPC: submit via SLURM job arrays ----
   reg_dir <- file.path(
     repo_root, "experiments",
-    sprintf("%s_glmnet_registry", dataset_name)
+    sprintf("%s_%s_registry", dataset_name, output_tag)
   )
   message("SLURM detected — submitting via batchtools job arrays...")
   unlink(reg_dir, recursive = TRUE)
@@ -167,7 +170,7 @@ if (use_slurm) {
     chunks,
     resources = list(
       walltime            = 60L * 60L,
-      memory              = 16000L,
+      memory              = 4000L,
       ncpus               = 1L,
       ntasks              = 1L,
       chunks.as.arrayjobs = TRUE
@@ -189,7 +192,7 @@ if (use_slurm) {
   )[, .(
     dataset_id     = dataset_name,
     metric_id      = cfg$metric_id,
-    learner        = "cv_glmnet",
+    learner        = learner_id,
     test_subset    = as.character(test.subset),
     train_subsets  = train.subsets,
     n_train_groups = n.train.groups,
