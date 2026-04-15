@@ -23,8 +23,8 @@ dataset_configs <- list(
     y_factor   = TRUE,
     y_levels   = c("No", "Yes"),
     drop_cols  = character(0L),
-    metric_id  = "classif.auc",
-    metric_col = "classif.auc"
+    metric_id  = "classif.ce",
+    metric_col = "classif.ce"
   ),
   stl10 = list(
     file       = file.path("processed", "classification", "STL10.csv"),
@@ -169,8 +169,8 @@ if (use_slurm) {
   batchtools::submitJobs(
     chunks,
     resources = list(
-      walltime            = 24 * 60L * 60L,
-      memory              = 32000L,
+      walltime            = 2L * 60L * 60L,
+      memory              = 24000L,
       ncpus               = 1L,
       ntasks              = 1L,
       chunks.as.arrayjobs = TRUE
