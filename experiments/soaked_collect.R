@@ -68,6 +68,10 @@ n_jobs <- nrow(batchtools::getJobTable(reg = reg))
 n_done <- nrow(batchtools::findDone(reg = reg))
 message(sprintf("  %d / %d jobs completed", n_done, n_jobs))
 
+if (n_done == 0L) {
+  stop("No jobs have completed yet — nothing to collect.")
+}
+
 if (n_done < n_jobs) {
   warning(sprintf(
     "%d job(s) not yet done — results will be incomplete.", n_jobs - n_done

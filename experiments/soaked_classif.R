@@ -169,8 +169,8 @@ if (use_slurm) {
   batchtools::submitJobs(
     chunks,
     resources = list(
-      walltime            = 60L * 60L,
-      memory              = 4000L,
+      walltime            = 24 * 60L * 60L,
+      memory              = 32000L,
       ncpus               = 1L,
       ntasks              = 1L,
       chunks.as.arrayjobs = TRUE

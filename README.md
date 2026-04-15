@@ -105,9 +105,11 @@ Collect results:
 /projects/genomic-ml/da2343/soak-r/bin/Rscript /projects/genomic-ml/da2343/SOAKED/experiments/soaked_collect.R --dataset=nsch_autism
 /projects/genomic-ml/da2343/soak-r/bin/Rscript /projects/genomic-ml/da2343/SOAKED/experiments/soaked_collect.R --dataset=stl10
 /projects/genomic-ml/da2343/soak-r/bin/Rscript /projects/genomic-ml/da2343/SOAKED/experiments/soaked_collect.R --dataset=waveform
+
 /projects/genomic-ml/da2343/soak-r/bin/Rscript /projects/genomic-ml/da2343/SOAKED/experiments/soaked_collect.R --dataset=traffic
 /projects/genomic-ml/da2343/soak-r/bin/Rscript /projects/genomic-ml/da2343/SOAKED/experiments/soaked_collect.R --dataset=qsip_dim.control_vs_qme.15
 /projects/genomic-ml/da2343/soak-r/bin/Rscript /projects/genomic-ml/da2343/SOAKED/experiments/soaked_collect.R --dataset=workers_compensation
+
 /projects/genomic-ml/da2343/soak-r/bin/Rscript /projects/genomic-ml/da2343/SOAKED/experiments/soaked_collect.R --dataset=different
 /projects/genomic-ml/da2343/soak-r/bin/Rscript /projects/genomic-ml/da2343/SOAKED/experiments/soaked_collect.R --dataset=iid_easy
 ```
