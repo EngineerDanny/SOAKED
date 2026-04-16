@@ -194,6 +194,7 @@ if (is.null(custom_xlab) && length(metric_labels) != 1L) {
   )
 }
 x_axis_label <- if (is.null(custom_xlab)) metric_labels[[1L]] else custom_xlab
+x_axis_label <- sub("(", sprintf("(%s, ", output_tag), x_axis_label, fixed = TRUE)
 
 plot_dt[, pair_label := factor(
   pair_label,
@@ -281,15 +282,14 @@ summary_dt[, label_side := ifelse(
   "right",
   "left"
 )]
-summary_dt[, label_offset := 0.02 * panel_span]
 summary_dt[, label_x := ifelse(
   label_side == "right",
-  mean_value + label_offset,
-  mean_value - label_offset
+  mean_value + sd_value / 2,
+  mean_value - sd_value / 2
 )]
 summary_dt[, label_hjust := ifelse(label_side == "right", 0, 1)]
 summary_dt[grepl("^dataset: workers_compensation,", pair_label), `:=`(
-  label_x = mean_value,
+  label_x    = mean_value,
   label_hjust = 0.5
 )]
 
@@ -336,7 +336,7 @@ pair_plot <- ggplot() +
   ) +
   facet_grid(rows = vars(sample_size), cols = vars(pair_label), scales = "free_x") +
   scale_y_discrete(limits = c("other", "same-other", "same")) +
-  scale_x_continuous(expand = expansion(mult = c(0.12, 0.12))) +
+  scale_x_continuous(expand = expansion(mult = c(0.12, 0.30))) +
   labs(
     x = x_axis_label,
     y = "Train subsets"
