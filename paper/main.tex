@@ -66,7 +66,7 @@ The decomposition changes the recommended action: a sample-size effect calls for
 
 The decomposition can also reverse the apparent ordering of training configurations and expose a failure mode of naive full-data comparison.
 In our workers' compensation experiment, the full-data comparison favors the pooled (Other) model for female claimants; after size-matching, SOAKED shows the gap shrinks to non-significance ($p = 0.117$), revealing that the apparent advantage is largely explained by training-set size rather than a genuine distributional difference.
-We demonstrate this and related phenomena across simulated regression, benchmark classification (STL10, waveform), epidemiological survey data (NSCH autism), and microbial biogeochemistry (qSIP).
+We demonstrate this and related phenomena across simulated regression, benchmark classification (STL-10, Waveform), epidemiological survey data (NSCH autism), and microbial biogeochemistry (qSIP).
 
 \paragraph{Summary of contributions.}
 We make four contributions.
@@ -119,7 +119,7 @@ SOAKED retains both the original full-data training sets and matched-size versio
 Fix a target subset $t$, and consider two training configurations $a,b \in \mathcal C$, where typically
 $\mathcal C=\{\mathrm{Same},\mathrm{Other},\mathrm{All}\}$.
 Let $L_t(\hat h_{c,n})$ denote the test loss on target subset $t$ of a predictor trained under configuration $c$ using $n$ training examples, where lower values indicate better performance.
-For classification metrics such as AUC, we define loss as $1-\mathrm{AUC}$ so that the same lower-is-better convention applies throughout.
+Throughout, we express performance as a loss with lower values indicating better performance; in the experiments below, this is classification error rate for classification and RMSE for regression.
 Because the learned predictor $\hat h_{c,n}$ depends on the random training sample, $L_t(\hat h_{c,n})$ is random.
 In practice, we report the empirical estimator
 \begin{equation}
@@ -270,7 +270,7 @@ qSIP & dim.control/qme.15 & 7,710 & 8,380 & 1.47 & growth\_per\_day & Regression
 Traffic & Phoenix/Baltimore & 128,792 & 7 & 6.01 & log(AADT) & Regression \\
 Workers' compensation & Male/Female & 100,000 & 8 & 3.38 & log(Ultimate incurred claim cost) & Regression \\
 NSCH autism & 2019/2020 & 46,010 & 362 & 1.53 & Autism diagnosis & Classification \\
-STL10 & test/train & 13,000 & 27,648 & 1.60 & Image class & Classification \\
+STL-10 & test/train & 13,000 & 27,648 & 1.60 & Image class & Classification \\
 Waveform & test/train & 800 & 21 & 1.67 & Waveform class & Classification \\
 \bottomrule
 \end{tabular}
@@ -360,32 +360,11 @@ Preprocessing scripts and the exact dataset versions used in our experiments wil
 The primary diagnostic comparison in SOAKED is Same against Other: it directly tests whether subset identity matters after controlling for training size.
 The All configuration pools both subsets and is included in Table~\ref{tab:results-summary} for completeness.
 For datasets with multiple test subsets, we display the subset that best illustrates the Same--Other contrast; all test subsets are covered in Table~\ref{tab:results-summary}.
-Figure~\ref{fig:learner-panels} reports mean $\pm$ SE (standard error across CV folds, emphasizing precision of the learner comparison); Figures~\ref{fig:classif-pairs}--\ref{fig:regr-pairs} report mean $\pm$ SD (standard dethroughtion across folds, showing spread of fold-level errors).
+Figure~\ref{fig:learner-panels} reports mean $\pm$ SE (standard error across CV folds, emphasizing precision of the learner comparison); Figures~\ref{fig:regr-pairs} and \ref{fig:classif-pairs} report mean $\pm$ SD (standard deviation across folds, showing spread of fold-level errors).
 Real-data experiments use $R=1$ downsampling seed.
-Regression experiments use \texttt{rpart} following the learner-robustness analysis in Section~\ref{sec:learner-robustness}, which shows the Same-beats-Other conclusion is stable across learner families on the traffic data.
+Regression experiments use \texttt{rpart}, motivated by the traffic learner-robustness analysis below, which shows the Same-beats-Other conclusion is stable across learner families on the traffic data.
 Classification experiments use \texttt{cv\_glmnet}, which is well suited to the moderate- and high-dimensional feature spaces in NSCH (362 features), STL-10 (27,648 CNN features), and Waveform (21 features), and provides a strong linear baseline for these classification tasks.
 Figure~\ref{fig:sim-combined} shows that SOAKED conclusions are stable across 100 seeds on simulated data, supporting this choice when compute is limited.
-
-\subsection{Learner robustness on the traffic data}
-\label{sec:learner-robustness}
-To assess whether the SOAKED conclusion depends strongly on the prediction algorithm, we compared featureless, regression tree (\texttt{rpart}), elastic net (\texttt{cv\_glmnet}), and a torch-based multi-layer perceptron.
-Figure~\ref{fig:learner-panels} focuses on the Phoenix test subset and reports test RMSE (mean $\pm$ SE across 5 CV splits) for the Same and Other train-subset configurations, both with the full available training sets and after matching all train sizes to the smallest feasible size.
-
-\begin{figure}
-    \centering
-    \includegraphics[width=\textwidth]{fig2-learner-panels.png}
-    \caption{Learner robustness and training-time tradeoffs on the traffic data. Panel A shows SOAKED results for the Phoenix test subset, comparing Same against Other training subsets using the full available training sets and matched smallest-size training sets. Across all learners, Same substantially outperforms Other, and this qualitative conclusion persists after train-size matching. Panel B shows per-run training time on a log-scaled axis. More expressive learners can improve RMSE, but the gain comes with a large increase in computational cost.}
-    \label{fig:learner-panels}
-\end{figure}
-
-The qualitative SOAKED conclusion is stable across the retained learner families in this example: training on the same subset is consistently better than training on the opposite subset, even after train-size matching.
-With matched train size ($N=14{,}702$), Same improves over Other for every learner, from 1.076 against 1.078 for the featureless baseline to 0.944 against 1.167 for the torch MLP.
-Among the non-featureless learners, \texttt{rpart} and \texttt{glmnet} both remain well below the featureless baseline in the matched-size condition, while the torch MLP gives the lowest RMSE.
-With the full Phoenix-size Same training set ($N=88{,}331$), the strongest RMSE among the plotted learners comes from the torch MLP (0.928), followed by \texttt{glmnet} (0.980) and \texttt{rpart} (0.982).
-
-Panel B shows that these predictive gains come with large differences in computational cost.
-Featureless, \texttt{rpart}, and \texttt{glmnet} train in approximately 0.002, 0.12, and 0.44 seconds per run, respectively, whereas the tuned torch MLP requires about 32.2 seconds.
-Because the main SOAKED diagnosis is stable across these learner families, we use \texttt{rpart} in the remaining experiments as a simple nonlinear default that is much cheaper than the neural network, substantially cheaper than \texttt{glmnet}, and still captures the same subset-dependent structure.
 
 \subsection{Simulated regression data sets}
 To assess whether the SOAKED conclusion is stable across random downsampling seeds, we repeated the matched-size comparison with 100 independent random seeds and examined the distribution of paired $t$-test $p$-values across seeds.
@@ -408,45 +387,33 @@ The robustness of these conclusions across 100 seeds supports the practical use 
     \label{fig:sim-combined}
 \end{figure}
 
-\subsection{NSCH autism survey data}
-Figure~\ref{fig:classif-pairs} (left column) shows SOAKED results for the 2020 test subset.
-The full-data comparison ranks Other ($N=25{,}027$, error $= 0.0256$) above Same ($N=16{,}381$, error $= 0.0241$) with a significant gap ($p = 0.0035$).
-After downsampling to $n_0 = 16{,}381$, both configurations yield nearly identical error rates ($0.0246$ vs.\ $0.0256$).
-The matched-size gap is marginally significant ($p = 0.0126$), suggesting a small year-specific residual difference beyond sample size.
-For the 2019 test subset (not shown), the matched-size gap is non-significant ($p > 0.2$).
-Taken together, the dominant cause is unequal sample sizes: collecting more data from the underrepresented survey year would largely close the gap, though the marginal significance for 2020 indicates a small distributional difference may also be present.
+\subsection{Real regression data sets}
+We next consider the three real regression examples, beginning with the traffic data because it motivates the learner choice used in the remaining regression experiments.
 
-\subsection{STL-10 image classification}
-Figure~\ref{fig:classif-pairs} (middle column) shows SOAKED results for the test-split target.
-At full training sizes, Same ($N=7{,}200$, error $= 0.627$) outperforms Other ($N=4{,}500$, error $= 0.644$), and the gap is significant ($p = 0.0009$).
-After downsampling to $n_0 = 4{,}500$, the gap narrows and becomes non-significant ($p = 0.193$), consistent with a sample-size effect.
-When the training split is the target (not shown), Same remains the worst configuration at matched size, indicating a residual subset effect: the test-split images are a genuinely weaker training source for predicting training-split labels.
-The two splits were sourced independently in the original STL-10 benchmark, which is likely why their distributions do not fully overlap.
-
-\subsection{Waveform classification}
-Figure~\ref{fig:classif-pairs} (right column) shows SOAKED results for the train-split target.
-At full training sizes, Other ($N=450$, error $= 0.183$) outperforms Same ($N=270$, error $= 0.210$); after downsampling to $n_0 = 270$, Other ($0.170$) still beats Same ($0.210$) with a significant gap ($p = 0.019$).
-This persistent gap at matched size is a residual subset effect: waveform examples from the test split are a genuinely weaker training source for the train-split labels, regardless of volume.
-When the test split is the target (not shown), the gap largely collapses after size-matching, following the same sample-size pattern as STL-10.
-Across both datasets, which split is the target determines the verdict; SOAK alone cannot detect this because it does not control for training size.
+\paragraph{Traffic data and learner robustness.}
+To assess whether the SOAKED conclusion depends strongly on the prediction algorithm, we compared featureless, regression tree (\texttt{rpart}), elastic net (\texttt{cv\_glmnet}), and a torch-based multi-layer perceptron.
+Figure~\ref{fig:learner-panels} focuses on the Phoenix test subset and reports test RMSE (mean $\pm$ SE across 5 CV splits) for the Same and Other train-subset configurations, both with the full available training sets and after matching all train sizes to the smallest feasible size.
 
 \begin{figure}
     \centering
-    \includegraphics[width=\textwidth]{fig4-classif-pairs.png}
-    \caption{SOAKED results for three classification datasets (cv.glmnet learner, 10-fold CV).
-    Each column corresponds to one dataset--test-subset pair: NSCH autism (test subset: 2020), STL-10 (test subset: test split), and Waveform (test subset: train split).
-    The top row uses the full available training sizes; the bottom row matches all training configurations to the smallest feasible size ($n_0$).
-    Each panel shows test classification error rate (mean $\pm$ SD) for Same and Other training subsets, with a horizontal line and $p$-value from the paired $t$-test of Section~\ref{sec:ttest} comparing the two configurations.
-    For NSCH autism (2020) and STL-10 test split, the Same--Other gap is significant at full size but collapses or weakens substantially after matching (NSCH: from $p=0.0035$ to $p=0.0126$; STL-10: from $p=0.0009$ to $p=0.193$), consistent with a dominant sample-size effect.
-    For Waveform train split, a significant gap persists after matching ($p = 0.019$), confirming a residual subset effect.}
-    \label{fig:classif-pairs}
+    \includegraphics[width=\textwidth]{fig2-learner-panels.png}
+    \caption{Learner robustness and training-time tradeoffs on the traffic data. Panel A shows SOAKED results for the Phoenix test subset, comparing Same against Other training subsets using the full available training sets and matched smallest-size training sets. Across all learners, Same substantially outperforms Other, and this qualitative conclusion persists after train-size matching. Panel B shows per-run training time on a log-scaled axis. More expressive learners can improve RMSE, but the gain comes with a large increase in computational cost.}
+    \label{fig:learner-panels}
 \end{figure}
 
+The qualitative SOAKED conclusion is stable across the retained learner families in this example: training on the same subset is consistently better than training on the opposite subset, even after train-size matching.
+With matched train size ($N=14{,}702$), Same improves over Other for every learner, from 1.076 against 1.078 for the featureless baseline to 0.944 against 1.167 for the torch MLP.
+Among the non-featureless learners, \texttt{rpart} and \texttt{glmnet} both remain well below the featureless baseline in the matched-size condition, while the torch MLP gives the lowest RMSE.
+With the full Phoenix-size Same training set ($N=88{,}331$), the strongest RMSE among the plotted learners comes from the torch MLP (0.928), followed by \texttt{glmnet} (0.980) and \texttt{rpart} (0.982).
 
-\subsection{qSIP regression}
+Panel B shows that these predictive gains come with large differences in computational cost.
+Featureless, \texttt{rpart}, and \texttt{glmnet} train in approximately 0.002, 0.12, and 0.44 seconds per run, respectively, whereas the tuned torch MLP requires about 32.2 seconds.
+Because the main SOAKED diagnosis is stable across these learner families, we use \texttt{rpart} in the remaining experiments as a simple nonlinear default that is much cheaper than the neural network, substantially cheaper than \texttt{glmnet}, and still captures the same subset-dependent structure.
+
+\paragraph{qSIP regression.}
 Figure~\ref{fig:regr-pairs} (middle column) shows SOAKED results for the \texttt{dim.control} test subset: Same ($0.0155$) substantially outperforms Other ($0.0399$) at full sizes ($p < 0.0001$), and this gap persists after size-matching ($p < 0.0001$), confirming a strong treatment subset effect.
 
-\subsection{Workers' compensation}
+\paragraph{Workers' compensation.}
 Figure~\ref{fig:regr-pairs} (right column) shows the Female test subset.
 At full training sizes, Other ($N=69{,}454$) outperforms Same ($N=20{,}545$) in RMSE ($1.741$ vs.\ $1.753$, $p < 0.0001$).
 After downsampling to $n_0 = 20{,}545$, the gap narrows substantially (Other $1.748$ vs.\ Same $1.753$) and is no longer significant ($p = 0.117$).
@@ -462,6 +429,43 @@ This is the sample-size pattern SOAKED is designed to reveal: most of the appare
     For traffic and qSIP, the Same--Other gap is significant at both full and matched sizes ($p < 0.0001$), confirming a genuine geographic and treatment subset effect.
     For Workers' Compensation, the full-data result shows Other better than Same, but after size-matching the gap shrinks and becomes non-significant ($p = 0.117$), indicating that the apparent advantage is primarily a sample-size effect.}
     \label{fig:regr-pairs}
+\end{figure}
+
+\subsection{Real classification data sets}
+We then turn to the three real classification examples, which all use the same \texttt{cv\_glmnet} baseline but differ in whether the apparent advantage of Same or Other survives size matching.
+
+\paragraph{NSCH autism survey data.}
+Figure~\ref{fig:classif-pairs} (left column) shows SOAKED results for the 2020 test subset.
+The full-data comparison ranks Other ($N=25{,}027$, error $= 0.0256$) above Same ($N=16{,}381$, error $= 0.0241$) with a significant gap ($p = 0.0035$).
+After downsampling to $n_0 = 16{,}381$, both configurations yield nearly identical error rates ($0.0246$ vs.\ $0.0256$).
+The matched-size gap is marginally significant ($p = 0.0126$), suggesting a small year-specific residual difference beyond sample size.
+For the 2019 test subset (not shown), the matched-size gap is non-significant ($p > 0.2$).
+Taken together, the dominant cause is unequal sample sizes: collecting more data from the underrepresented survey year would largely close the gap, though the marginal significance for 2020 indicates a small distributional difference may also be present.
+
+\paragraph{STL-10 image classification.}
+Figure~\ref{fig:classif-pairs} (middle column) shows SOAKED results for the test-split target.
+At full training sizes, Same ($N=7{,}200$, error $= 0.627$) outperforms Other ($N=4{,}500$, error $= 0.644$), and the gap is significant ($p = 0.0009$).
+After downsampling to $n_0 = 4{,}500$, the gap narrows and becomes non-significant ($p = 0.193$), consistent with a sample-size effect.
+When the training split is the target (not shown), Same remains the worst configuration at matched size, indicating a residual subset effect: the test-split images are a genuinely weaker training source for predicting training-split labels.
+The two splits were sourced independently in the original STL-10 benchmark, which is likely why their distributions do not fully overlap.
+
+\paragraph{Waveform classification.}
+Figure~\ref{fig:classif-pairs} (right column) shows SOAKED results for the train-split target.
+At full training sizes, Other ($N=450$, error $= 0.183$) outperforms Same ($N=270$, error $= 0.210$); after downsampling to $n_0 = 270$, Other ($0.170$) still beats Same ($0.210$) with a significant gap ($p = 0.019$).
+This persistent gap at matched size is a residual subset effect: Waveform examples from the test split are a genuinely weaker training source for the train-split labels, regardless of volume.
+When the test split is the target (not shown), the gap largely collapses after size-matching, following the same sample-size pattern as STL-10.
+Across both datasets, which split is the target determines the verdict; SOAK alone cannot detect this because it does not control for training size.
+
+\begin{figure}
+    \centering
+    \includegraphics[width=\textwidth]{fig4-classif-pairs.png}
+    \caption{SOAKED results for three classification datasets (cv.glmnet learner, 10-fold CV).
+    Each column corresponds to one dataset--test-subset pair: NSCH autism (test subset: 2020), STL-10 (test subset: test split), and Waveform (test subset: train split).
+    The top row uses the full available training sizes; the bottom row matches all training configurations to the smallest feasible size ($n_0$).
+    Each panel shows test classification error rate (mean $\pm$ SD) for Same and Other training subsets, with a horizontal line and $p$-value from the paired $t$-test of Section~\ref{sec:ttest} comparing the two configurations.
+    For NSCH autism (2020) and STL-10 test split, the Same--Other gap is significant at full size but collapses or weakens substantially after matching (NSCH: from $p=0.0035$ to $p=0.0126$; STL-10: from $p=0.0009$ to $p=0.193$), consistent with a dominant sample-size effect.
+    For Waveform train split, a significant gap persists after matching ($p = 0.019$), confirming a residual subset effect.}
+    \label{fig:classif-pairs}
 \end{figure}
 
 \subsection{Summary of results across all data sets}
@@ -493,10 +497,10 @@ traffic & Baltimore & $s<a<o$ & $s<o<a$ & Oi & $s<a<o$ & subset \\
 \midrule
 NSCH\_autism & 2019 & $s<o<a$ & $s<o<a$ & Om & $s=o=a$ & sample size \\
 NSCH\_autism & 2020 & $s<o<a$ & $s<o<a$ & Om & $s=o=a$ & sample size \\
-STL10 & test & $o<s<a$ & $o<s<a$ & Sm & $s=o=a$ & sample size \\
-STL10 & train & $o<s<a$ & $o<s<a$ & Si & $s<a<o$ & subset \\
-waveform & test & $o<s<a$ & $o<s<a$ & Sm & $s=o=a$ & sample size \\
-waveform & train & $o<s<a$ & $o<s<a$ & Si & $s<a<o$ & subset \\
+STL-10 & test & $o<s<a$ & $o<s<a$ & Sm & $s=o=a$ & sample size \\
+STL-10 & train & $o<s<a$ & $o<s<a$ & Si & $s<a<o$ & subset \\
+Waveform & test & $o<s<a$ & $o<s<a$ & Sm & $s=o=a$ & sample size \\
+Waveform & train & $o<s<a$ & $o<s<a$ & Si & $s<a<o$ & subset \\
 \bottomrule
 \end{tabular}}
     \caption{SOAKED results across all datasets. Symbols $s$, $o$, $a$ denote the Same, Other, and All training configurations; the orderings show test error from smallest to largest, so $s<o<a$ means Same has the lowest error and All the highest (lower is better for both RMSE and classification error). Scenario codes (cf.\ Table~\ref{tab:scenario-interpretation}): the first letter indicates relative train sizes (O: Other larger, $s<o$; S: Same larger, $o<s$); the second letter indicates the position of All in the error order (m: All has the best, lowest, error; i: All is intermediate). Combined codes: Om/Sm = diagonal (ambiguous) cases resolved by SOAKED; Oi/Si = off-diagonal cases already indicative of a subset effect.}
@@ -511,7 +515,7 @@ If the gap persists, it is a genuine subset effect and the remedy is distributio
 
 Across six real and two simulated datasets spanning regression and classification, image recognition, survey epidemiology, microbial biogeochemistry, and insurance claims, SOAKED consistently distinguished these two causes.
 In three cases (NSCH autism, STL-10 test split, workers' compensation Female), observed gaps disappeared after size-matching, pointing to data collection as the right response.
-In five cases (traffic, qSIP, STL-10 train split, waveform train split, workers' compensation Male), gaps persisted at matched size, indicating genuine distributional differences between subsets.
+In five cases (traffic, qSIP, STL-10 train split, Waveform train split, workers' compensation Male), gaps persisted at matched size, indicating genuine distributional differences between subsets.
 For the workers' compensation Female experiment, the naive full-data comparison favors Other, while SOAKED reveals that this apparent advantage shrinks to a non-significant difference once sizes are equalized.
 
 The seed-robustness experiment on simulated data confirms that the SOAKED conclusion is stable across 100 random downsampling seeds, supporting practical use of a single seed when compute is limited.
