@@ -34,7 +34,6 @@
 
 \maketitle
 
-
 \begin{abstract}
 In many machine-learning applications, the data come in natural subsets defined by geography, time period, acquisition protocol, or demographic group.
 When model performance differs across subsets, the appropriate remedy depends on the cause: if the gap reflects unequal training-set sizes, more data collection is needed; if it reflects genuine distributional differences, domain adaptation or robustness methods are needed.
@@ -43,7 +42,7 @@ We propose SOAKED (Same/Other/All K-fold cross-validation Extension: Downsamplin
 The decomposition can reverse the apparent ordering of training configurations: in our workers' compensation experiment, the naive full-data comparison suggests Other training data is superior, while SOAKED shows the gap is not significant once training-set size is controlled.
 We demonstrate the framework across diverse domains: simulated regression, traffic monitoring, insurance claims (workers' compensation), benchmark classification (STL-10, Waveform), survey data (NSCH autism), and microbial biogeochemistry (qSIP).
 Across these examples, some apparent subset advantages disappear after size matching (a sample-size effect; the fix is more data collection), while others persist (a true distributional difference; the fix is robustness or domain-adaptation methods).
-An implementation is available in the \texttt{mlr3resampling} R package.
+We implement SOAKED in the \texttt{mlr3resampling} R package.
 \end{abstract}
 
 
@@ -119,7 +118,7 @@ SOAKED retains both the original full-data training sets and matched-size versio
 Fix a target subset $t$, and consider two training configurations $a,b \in \mathcal C$, where typically
 $\mathcal C=\{\mathrm{Same},\mathrm{Other},\mathrm{All}\}$.
 Let $L_t(\hat h_{c,n})$ denote the test loss on target subset $t$ of a predictor trained under configuration $c$ using $n$ training examples, where lower values indicate better performance.
-Throughout, we express performance as a loss with lower values indicating better performance; in the experiments below, this is classification error rate for classification and RMSE for regression.
+Throughout, we express performance as a loss with lower values indicating better performance; in our experiments, this is Classification Error Rate for classification and Root Mean Square Error (RMSE) for regression.
 Because the learned predictor $\hat h_{c,n}$ depends on the random training sample, $L_t(\hat h_{c,n})$ is random.
 In practice, we report the empirical estimator
 \begin{equation}
@@ -155,9 +154,8 @@ L_t(\hat h_{a,n_0}) - L_t(\hat h_{b,n_0}).
 We set $n_0 = \min(n_a, n_b)$ rather than an intermediate target such as the harmonic or geometric mean.
 This choice is the most conservative test of a subset effect: if configuration $a$ outperforms $b$ when $a$ is trained on the fewest possible examples (the point at which $a$ is most disadvantaged relative to its full training set), the evidence for a genuine quality advantage of $a$ is as strong as possible.
 Any larger matched size would reduce $\delta_s$ and make it easier for the size-advantaged configuration to maintain its lead, weakening the test.
-The minimum is also uniquely defined and requires no tuning, avoiding the researcher degree of freedom introduced by alternative target sizes.
-The minimum also directly answers the practitioner's counterfactual: \emph{would the larger-subset configuration still win if it only had as much data as its competitor?}
-If not, the observed advantage is fully explained by sample size.
+The minimum is also uniquely defined and requires no tuning, avoiding the additional degree of freedom introduced by alternative target sizes.
+The minimum also directly answers the relevant counterfactual: \emph{would the larger-subset configuration still win if it only had as much data as its competitor?} If not, the observed advantage is fully explained by sample size.
 
 This is an operational decomposition: the matched-size gap is interpreted as the residual performance difference after controlling for training size, and the remainder of the full-data gap is attributed to unequal training size.
 Accordingly, we define the subset-effect component as
@@ -199,9 +197,9 @@ Consequently, a nonzero empirical matched-size gap is evidence against exchangea
 \begin{proposition}[Characterization of ordering reversal]
 \label{prop:reversal}
 Let $f_c(n) = \mathbb{E}[L_t(\hat{h}_{c,n})]$ and suppose $n_b \geq n_a$, so $n_0 = n_a$.
-Let $\delta_q := f_b(n_0) - f_a(n_0)$ be the per-sample quality advantage of $a$, and $\delta_s := f_b(n_0) - f_b(n_b) \geq 0$ be the size gain of $b$.
+Let $\delta_q := f_b(n_0) - f_a(n_0)$ be the quality advantage of $a$ at matched size, and $\delta_s := f_b(n_0) - f_b(n_b) \geq 0$ be the size gain of $b$.
 Then $\mathbb{E}[\Delta_t^{\mathrm{match}}] = -\delta_q$ and $\mathbb{E}[\Delta_t^{\mathrm{full}}] = \delta_s - \delta_q$.
-Ordering reversal occurs if and only if $0 < \delta_q < \delta_s$: $a$ is the better per-sample source but $b$'s size advantage is large enough to overcome that quality deficit.
+Ordering reversal occurs if and only if $0 < \delta_q < \delta_s$: $a$ is the better source at matched size, but $b$'s size advantage is large enough to overcome that quality deficit.
 If $\delta_s = 0$, reversal is impossible and SOAK suffices; if $\delta_q = 0$, the gap is a pure sample-size effect.
 \end{proposition}
 
@@ -231,7 +229,7 @@ with
 \label{sec:ttest}
 
 Proposition~\ref{prop:reversal} establishes that $\mathbb{E}[\Delta_t^{\mathrm{match}}(a,b)] = 0$ when the two subsets are exchangeable (Lemma~\ref{lem:exchangeability}), making the matched-size gap a natural test statistic for a genuine subset effect.
-We test $H_0\colon \mathbb{E}[\Delta_t^{\mathrm{match}}(a,b)] = 0$ using a paired $t$-test on fold-level gap estimates (equivalently, a one-sample $t$-test on the per-fold differences).
+We test $H_0\colon \mathbb{E}[\Delta_t^{\mathrm{match}}(a,b)] = 0$ using a paired $t$-test on fold-level gap estimates (equivalently, a one-sample $t$-test on the differences).
 
 For each outer cross-validation fold $b \in \{1,\ldots,B\}$, we compute the fold-level matched-size gap
 \[
@@ -248,7 +246,7 @@ This procedure is implemented in \texttt{mlr3resampling::pvalue\_downsample()}.
 
 Two caveats are worth surfacing here.
 First, with $B=5$ or $B=10$ folds the test has only $4$ or $9$ degrees of freedom, so it has limited power; a non-significant result should be interpreted as insufficient evidence of a subset effect, not as evidence of none.
-Second, averaging over $R$ seeds within a fold suppresses within-fold variance, which makes the test conservative on variance, and although fold-level estimates are independent the training sets across folds may share examples in standard $K$-fold splits, slightly inflating dependence.
+Second, averaging over $R$ seeds within a fold suppresses variance from random downsampling, which makes the test conservative on variance, and although fold-level estimates are independent the training sets across folds may share examples in standard $K$-fold splits, slightly inflating dependence.
 Both effects bias the test toward conservatism, so rejections should be regarded as robust evidence.
 
 For the traffic data (Phoenix and Baltimore test subsets, \texttt{rpart} learner, $B=5$ folds), the matched-size $t$-test on the Same--Other gap gives $p = 0.0001$ (Phoenix) and $p = 0.0007$ (Baltimore), strongly rejecting exchangeability and confirming a genuine geographic subset effect.
@@ -279,8 +277,61 @@ Waveform & test/train & 800 & 21 & 1.67 & Waveform class & Classification \\
 Table~\ref{tab:scenario-interpretation} summarizes the qualitative interpretation of Same against Other before downsampling.
 The off-diagonal cases already indicate a subset effect because the smaller training source is more predictive.
 The diagonal cases are ambiguous under unequal training sizes, which is precisely the setting where SOAKED is needed.
+\section{Datasets and experimental setup}
+\label{sec:datasets}
 
-\begin{table}[t]
+We evaluate SOAKED on two simulated and six real datasets that span regression and classification, low and high-dimensional features, and natural subset structures defined by geography, time, treatment, demography, and benchmark splits.
+Table~\ref{tab:dataset-summary} summarizes their key properties.
+All experiments use 10-fold cross-validation unless noted otherwise and report classification error rate or RMSE (lower is better).
+
+\paragraph{Simulated datasets.}
+The two simulated datasets are controlled regression problems in which each row is a synthetic observation with scalar response $y$, and the two subsets are labeled \texttt{large} and \texttt{small}.
+In \texttt{different}, the subsets have different additive means, so a Same--Other gap reflects a genuine subset effect rather than a pure sample-size difference.
+In \texttt{iid\_easy}, the two subsets are i.i.d.\ from the same distribution, so any full-data gap should disappear after size-matching (Lemma~\ref{lem:exchangeability}).
+Both are used to assess seed robustness with 100 independent downsampling seeds and to verify that SOAKED recovers the expected distinction between true subset differences and pure size imbalance.
+
+\paragraph{Traffic (regression).}
+The traffic dataset contains road-segment observations from Phoenix and Baltimore, which serve as the two SOAKED subsets.
+Each row represents one road segment, the prediction target is log-transformed Average Annual Daily Traffic (AADT), and the feature set combines night-time lights, population, road density, and Sentinel-2 satellite bands (7 features, 128,792 rows).
+This setting asks whether training on data from the same city is more predictive than training on the other city or on both cities pooled together.
+We also use this dataset to assess learner robustness, comparing featureless, \texttt{rpart}, \texttt{cv\_glmnet}, and a torch-based MLP over 5-fold CV.
+
+\paragraph{qSIP (regression).}
+The qSIP dataset is a microbial biogeochemistry regression problem from the MC site with two treatment subsets: \texttt{dim.control} (3,120 observations) and \texttt{qme.15} (4,590 observations).
+Each row is an observation characterized by 8,380 KEGG ortholog indicators, and the prediction target is \texttt{growth\_per\_day}.
+This setting asks whether training within the same treatment is more informative than borrowing data from the other treatment or pooling both treatments.
+
+\paragraph{Workers' compensation (regression).}
+The workers' compensation dataset is a benchmark of 100,000 synthetically generated insurance claims \citep{Ali2020}.
+Each row represents one claim, the prediction target is log-transformed UltimateIncurredClaimCost, and claimant gender defines the two SOAKED subsets: 77,020 male and 22,980 female instances.
+This setting asks whether a cost model for one gender benefits from cross-gender training data, or whether the apparent gain from pooling is primarily driven by unequal sample sizes.
+
+\paragraph{NSCH autism (classification).}
+The National Survey of Children's Health (NSCH) is a nationally representative annual survey conducted by the U.S.\ Census Bureau.
+We use survey years 2019 and 2020 as the two SOAKED subsets (18,202 and 27,808 children respectively).
+Each row represents one child, with survey responses provided by an adult familiar with the child's health, and the features encode questionnaire items on diagnoses, family income, insurance coverage, healthcare access, neighborhood conditions, and related factors.
+The target is a binary autism diagnosis indicator ($\approx3\%$ positive rate).
+This setting asks whether pooling survey years improves prediction for a target year, or whether year-specific differences limit the value of cross-year training.
+
+\paragraph{STL-10 (classification).}
+STL-10 is a benchmark image classification dataset \citep{coates2011stl10} with 13,000 images across 10 object classes, represented here by 27,648 precomputed image features.
+Each row is one image, the target is object class, and the predefined train (5,000) and test (8,000) splits serve as the two SOAKED subsets.
+This setting asks whether the benchmark split behaves like a meaningful subset shift, so that training on one split transfers poorly to the other even after controlling for sample size.
+
+\paragraph{Waveform (classification).}
+The UCI Waveform dataset \citep{breiman1984classification} contains 800 labeled examples (300 train, 500 test) across three classes described by 21 features after preprocessing.
+Each row is one waveform example, the target is waveform class, and the predefined train/test split defines the two SOAKED subsets.
+This setting asks whether the split labels behave as a real subset structure, or whether any apparent advantage of one split over the other disappears after size matching.
+
+\paragraph{Data availability and licensing.}
+All datasets used in this paper are either publicly available or synthetically generated.
+STL-10 \citep{coates2011stl10} and the UCI Waveform dataset \citep{breiman1984classification} are distributed under their original public-research licenses.
+NSCH micro-data are released by the U.S.\ Census Bureau and the Health Resources and Services Administration for public research use.
+The workers' compensation dataset is a synthetic benchmark released with \citet{Ali2020}.
+The traffic and qSIP datasets were produced by collaborating research groups and are made available with the SOAKED code release.
+Preprocessing scripts and the exact dataset versions used in our experiments will be released alongside the \texttt{mlr3resampling} package to support full reproducibility.
+
+\begin{table}[!t]
 \centering
 \small
 \caption{Interpretation of prediction accuracy and sample size.}
@@ -309,51 +360,6 @@ The diagonal cases are ambiguous under unequal training sizes, which is precisel
 \bottomrule
 \end{tabular}
 \end{table}
-\section{Datasets and experimental setup}
-\label{sec:datasets}
-
-We evaluate SOAKED on two simulated and six real datasets that span regression and classification, low- and high-dimensional features, and natural subset structures defined by geography, time, treatment, demography, and benchmark splits.
-Table~\ref{tab:dataset-summary} summarizes their key properties.
-All experiments use 10-fold cross-validation unless noted otherwise and report classification error rate or RMSE (lower is better).
-
-\paragraph{Simulated datasets.}
-The \texttt{different} dataset contains two subsets (\texttt{large}, 400 rows; \texttt{small}, 200 rows) with different additive means, so a Same--Other gap reflects a genuine subset effect.
-The \texttt{iid\_easy} dataset contains two i.i.d.\ subsets from the same distribution, so any full-data gap should disappear after size-matching (Lemma~\ref{lem:exchangeability}).
-Both are used to assess seed robustness with 100 independent downsampling seeds.
-
-\paragraph{Traffic (regression).}
-Road-segment data from Phoenix and Baltimore with log-transformed Average Annual Daily Traffic (AADT) as the prediction target.
-The feature set combines night-time lights, population, road density, and Sentinel-2 satellite bands (7 features, 128,792 rows).
-We use this dataset to assess learner robustness, comparing featureless, \texttt{rpart}, \texttt{cv\_glmnet}, and a torch-based MLP over 5-fold CV.
-
-\paragraph{qSIP (regression).}
-Microbial biogeochemistry data from the MC site comparing two treatment subsets: \texttt{dim.control} (3,120 observations) and \texttt{qme.15} (4,590 observations).
-The prediction target is \texttt{growth\_per\_day} and the feature matrix contains 8,380 KEGG ortholog indicators.
-
-\paragraph{Workers' compensation (regression).}
-A dataset of 100,000 synthetically generated insurance claims \citep{Ali2020} with log-transformed UltimateIncurredClaimCost as the prediction target.
-Gender is used as the SOAKED subset: 77,020 male and 22,980 female instances.
-
-\paragraph{NSCH autism (classification).}
-The National Survey of Children's Health (NSCH), a nationally representative annual survey by the U.S.\ Census Bureau.
-We use survey years 2019 and 2020 as SOAKED subsets (18,202 and 27,808 children respectively), described by 362 features after preprocessing.
-The target is a binary autism diagnosis indicator ($\approx3\%$ positive rate).
-
-\paragraph{STL-10 (classification).}
-A benchmark image classification dataset \citep{coates2011stl10} with 13,000 examples across 10 object classes, represented here by 27,648 precomputed image features.
-The predefined train (5,000) and test (8,000) splits serve as SOAKED subsets.
-
-\paragraph{Waveform (classification).}
-The UCI Waveform dataset \citep{breiman1984classification} with 800 labeled examples (300 train, 500 test) across three classes described by 21 features after preprocessing.
-The predefined splits serve as SOAKED subsets.
-
-\paragraph{Data availability and licensing.}
-All datasets used in this paper are either publicly available or synthetically generated.
-STL-10 \citep{coates2011stl10} and the UCI Waveform dataset \citep{breiman1984classification} are distributed under their original public-research licenses.
-NSCH micro-data are released by the U.S.\ Census Bureau and the Health Resources and Services Administration for public research use.
-The workers' compensation dataset is a synthetic benchmark released with \citet{Ali2020}.
-The traffic and qSIP datasets were produced by collaborating research groups and are made available with the SOAKED code release.
-Preprocessing scripts and the exact dataset versions used in our experiments will be released alongside the \texttt{mlr3resampling} package to support full reproducibility.
 
 \section{Results}
 
@@ -390,8 +396,7 @@ The robustness of these conclusions across 100 seeds supports the practical use 
 \subsection{Real regression data sets}
 We next consider the three real regression examples, beginning with the traffic data because it motivates the learner choice used in the remaining regression experiments.
 
-\paragraph{Traffic data and learner robustness.}
-To assess whether the SOAKED conclusion depends strongly on the prediction algorithm, we compared featureless, regression tree (\texttt{rpart}), elastic net (\texttt{cv\_glmnet}), and a torch-based multi-layer perceptron.
+On the traffic data, we assessed whether the SOAKED conclusion depends strongly on the prediction algorithm by comparing featureless, regression tree (\texttt{rpart}), elastic net (\texttt{cv\_glmnet}), and a torch-based multi-layer perceptron.
 Figure~\ref{fig:learner-panels} focuses on the Phoenix test subset and reports test RMSE (mean $\pm$ SE across 5 CV splits) for the Same and Other train-subset configurations, both with the full available training sets and after matching all train sizes to the smallest feasible size.
 
 \begin{figure}
@@ -410,11 +415,9 @@ Panel B shows that these predictive gains come with large differences in computa
 Featureless, \texttt{rpart}, and \texttt{glmnet} train in approximately 0.002, 0.12, and 0.44 seconds per run, respectively, whereas the tuned torch MLP requires about 32.2 seconds.
 Because the main SOAKED diagnosis is stable across these learner families, we use \texttt{rpart} in the remaining experiments as a simple nonlinear default that is much cheaper than the neural network, substantially cheaper than \texttt{glmnet}, and still captures the same subset-dependent structure.
 
-\paragraph{qSIP regression.}
-Figure~\ref{fig:regr-pairs} (middle column) shows SOAKED results for the \texttt{dim.control} test subset: Same ($0.0155$) substantially outperforms Other ($0.0399$) at full sizes ($p < 0.0001$), and this gap persists after size-matching ($p < 0.0001$), confirming a strong treatment subset effect.
+For qSIP, Figure~\ref{fig:regr-pairs} (middle column) shows SOAKED results for the \texttt{dim.control} test subset: Same ($0.0155$) substantially outperforms Other ($0.0399$) at full sizes ($p < 0.0001$), and this gap persists after size-matching ($p < 0.0001$), confirming a strong treatment subset effect.
 
-\paragraph{Workers' compensation.}
-Figure~\ref{fig:regr-pairs} (right column) shows the Female test subset.
+For workers' compensation, Figure~\ref{fig:regr-pairs} (right column) shows the Female test subset.
 At full training sizes, Other ($N=69{,}454$) outperforms Same ($N=20{,}545$) in RMSE ($1.741$ vs.\ $1.753$, $p < 0.0001$).
 After downsampling to $n_0 = 20{,}545$, the gap narrows substantially (Other $1.748$ vs.\ Same $1.753$) and is no longer significant ($p = 0.117$).
 This is the sample-size pattern SOAKED is designed to reveal: most of the apparent full-data advantage of Other is explained by its larger training set rather than by a strong residual subset effect.
@@ -434,23 +437,20 @@ This is the sample-size pattern SOAKED is designed to reveal: most of the appare
 \subsection{Real classification data sets}
 We then turn to the three real classification examples, which all use the same \texttt{cv\_glmnet} baseline but differ in whether the apparent advantage of Same or Other survives size matching.
 
-\paragraph{NSCH autism survey data.}
-Figure~\ref{fig:classif-pairs} (left column) shows SOAKED results for the 2020 test subset.
+For NSCH autism, Figure~\ref{fig:classif-pairs} (left column) shows SOAKED results for the 2020 test subset.
 The full-data comparison ranks Other ($N=25{,}027$, error $= 0.0256$) above Same ($N=16{,}381$, error $= 0.0241$) with a significant gap ($p = 0.0035$).
 After downsampling to $n_0 = 16{,}381$, both configurations yield nearly identical error rates ($0.0246$ vs.\ $0.0256$).
 The matched-size gap is marginally significant ($p = 0.0126$), suggesting a small year-specific residual difference beyond sample size.
 For the 2019 test subset (not shown), the matched-size gap is non-significant ($p > 0.2$).
 Taken together, the dominant cause is unequal sample sizes: collecting more data from the underrepresented survey year would largely close the gap, though the marginal significance for 2020 indicates a small distributional difference may also be present.
 
-\paragraph{STL-10 image classification.}
-Figure~\ref{fig:classif-pairs} (middle column) shows SOAKED results for the test-split target.
+For STL-10, Figure~\ref{fig:classif-pairs} (middle column) shows SOAKED results for the test-split target.
 At full training sizes, Same ($N=7{,}200$, error $= 0.627$) outperforms Other ($N=4{,}500$, error $= 0.644$), and the gap is significant ($p = 0.0009$).
 After downsampling to $n_0 = 4{,}500$, the gap narrows and becomes non-significant ($p = 0.193$), consistent with a sample-size effect.
 When the training split is the target (not shown), Same remains the worst configuration at matched size, indicating a residual subset effect: the test-split images are a genuinely weaker training source for predicting training-split labels.
 The two splits were sourced independently in the original STL-10 benchmark, which is likely why their distributions do not fully overlap.
 
-\paragraph{Waveform classification.}
-Figure~\ref{fig:classif-pairs} (right column) shows SOAKED results for the train-split target.
+For Waveform, Figure~\ref{fig:classif-pairs} (right column) shows SOAKED results for the train-split target.
 At full training sizes, Other ($N=450$, error $= 0.183$) outperforms Same ($N=270$, error $= 0.210$); after downsampling to $n_0 = 270$, Other ($0.170$) still beats Same ($0.210$) with a significant gap ($p = 0.019$).
 This persistent gap at matched size is a residual subset effect: Waveform examples from the test split are a genuinely weaker training source for the train-split labels, regardless of volume.
 When the test split is the target (not shown), the gap largely collapses after size-matching, following the same sample-size pattern as STL-10.
