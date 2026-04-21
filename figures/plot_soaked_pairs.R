@@ -43,6 +43,15 @@ pair_args <- grep("^--pair=", args, value = TRUE)
 out_arg <- grep("^--out=", args, value = TRUE)
 tag_arg <- grep("^--tag=", args, value = TRUE)
 xlab_arg <- grep("^--xlab=", args, value = TRUE)
+width_arg <- grep("^--width=", args, value = TRUE)
+height_arg <- grep("^--height=", args, value = TRUE)
+ylab_arg <- grep("^--ylab=", args, value = TRUE)
+anno_size_arg <- grep("^--anno-size=", args, value = TRUE)
+sample_prefix_arg <- grep("^--sample-prefix=", args, value = TRUE)
+expand_left_arg <- grep("^--x-expand-left=", args, value = TRUE)
+expand_right_arg <- grep("^--x-expand-right=", args, value = TRUE)
+center_labels_arg <- grep("^--center-labels=", args, value = TRUE)
+pair_label_break_arg <- grep("^--pair-label-break=", args, value = TRUE)
 output_tag <- if (length(tag_arg) > 0L) {
   sub("^--tag=", "", tag_arg[[1L]])
 } else {
@@ -52,6 +61,51 @@ custom_xlab <- if (length(xlab_arg) > 0L) {
   sub("^--xlab=", "", xlab_arg[[1L]])
 } else {
   NULL
+}
+custom_width <- if (length(width_arg) > 0L) {
+  as.numeric(sub("^--width=", "", width_arg[[1L]]))
+} else {
+  max(5.2, 3.4 * length(pair_args))
+}
+custom_height <- if (length(height_arg) > 0L) {
+  as.numeric(sub("^--height=", "", height_arg[[1L]]))
+} else {
+  2.9
+}
+custom_ylab <- if (length(ylab_arg) > 0L) {
+  sub("^--ylab=", "", ylab_arg[[1L]])
+} else {
+  "Train subsets"
+}
+anno_size <- if (length(anno_size_arg) > 0L) {
+  as.numeric(sub("^--anno-size=", "", anno_size_arg[[1L]]))
+} else {
+  3.3
+}
+use_sample_prefix <- if (length(sample_prefix_arg) > 0L) {
+  tolower(sub("^--sample-prefix=", "", sample_prefix_arg[[1L]])) %in% c("1", "true", "yes")
+} else {
+  FALSE
+}
+x_expand_left <- if (length(expand_left_arg) > 0L) {
+  as.numeric(sub("^--x-expand-left=", "", expand_left_arg[[1L]]))
+} else {
+  0
+}
+x_expand_right <- if (length(expand_right_arg) > 0L) {
+  as.numeric(sub("^--x-expand-right=", "", expand_right_arg[[1L]]))
+} else {
+  0
+}
+center_labels <- if (length(center_labels_arg) > 0L) {
+  tolower(sub("^--center-labels=", "", center_labels_arg[[1L]])) %in% c("1", "true", "yes")
+} else {
+  TRUE
+}
+pair_label_break <- if (length(pair_label_break_arg) > 0L) {
+  tolower(sub("^--pair-label-break=", "", pair_label_break_arg[[1L]])) %in% c("1", "true", "yes")
+} else {
+  FALSE
 }
 
 if (length(pair_args) == 0L) {
@@ -86,7 +140,7 @@ pair_specs <- lapply(pair_args, function(x) {
     dataset = dataset_name,
     test_subset = subset_name,
     pair_label = sprintf(
-      "dataset: %s, test_subset: %s",
+      "dataset: %s\ntest_subset:%s",
       dataset_configs[[dataset_name]]$display_name,
       subset_name
     )
@@ -204,12 +258,37 @@ plot_dt[, sample_size := factor(
   sample_size,
   levels = c("full", "smallest")
 )]
+if (use_sample_prefix) {
+  plot_dt[, sample_size_label := ifelse(
+    sample_size == "full",
+    "sample\nsize:\nfull",
+    "sample\nsize:\nsmallest"
+  )]
+} else {
+  plot_dt[, sample_size_label := ifelse(
+    sample_size == "full",
+    "sample\nsize:\nfull",
+    "sample\nsize:\nsmallest"
+  )]
+}
+plot_dt[, sample_size_label := factor(
+  sample_size_label,
+  levels = unique(plot_dt[order(sample_size), sample_size_label])
+)]
+
+facet_label_dt <- unique(plot_dt[, .(pair_label, sample_size, sample_size_label)])
 
 summary_dt <- plot_dt[, .(
   mean_value = mean(get(unique(metric_col_name)[[1L]])),
   sd_value = sd(get(unique(metric_col_name)[[1L]])),
   n_train_groups = unique(n.train.groups)[[1L]]
 ), by = .(pair_label, sample_size, train.subsets)]
+summary_dt <- merge(
+  summary_dt,
+  facet_label_dt,
+  by = c("pair_label", "sample_size"),
+  all.x = TRUE
+)
 
 summary_dt[, y_label := train.subsets]
 summary_dt[y_label %in% c("other", "same"), label := sprintf(
@@ -250,6 +329,12 @@ pvalue_summary[, `:=`(
   ),
   x_mid = (x_min + x_max) / 2
 )]
+pvalue_summary <- merge(
+  pvalue_summary,
+  facet_label_dt,
+  by = c("pair_label", "sample_size"),
+  all.x = TRUE
+)
 
 plot_anno_dt <- rbindlist(
   list(
@@ -274,23 +359,9 @@ summary_dt <- merge(
   all.x = TRUE
 )
 summary_dt[, `:=`(
-  left_room = mean_value - panel_x_min,
-  right_room = panel_x_max - mean_value
-)]
-summary_dt[, label_side := ifelse(
-  right_room >= left_room + 0.15 * panel_span,
-  "right",
-  "left"
-)]
-summary_dt[, label_x := ifelse(
-  label_side == "right",
-  mean_value + sd_value / 2,
-  mean_value - sd_value / 2
-)]
-summary_dt[, label_hjust := ifelse(label_side == "right", 0, 1)]
-summary_dt[grepl("^dataset: workers_compensation,", pair_label), `:=`(
-  label_x    = mean_value,
-  label_hjust = 0.5
+  label_x = mean_value,
+  label_hjust = 0.5,
+  label_half_width = pmax(1.25 * sd_value, 0.08 * panel_span * nchar(label))
 )]
 
 pair_plot <- ggplot() +
@@ -308,15 +379,24 @@ pair_plot <- ggplot() +
     aes(x = mean_value, y = y_label),
     shape = 1
   ) +
+  geom_blank(
+    data = summary_dt[y_label %in% c("other", "same")],
+    aes(x = label_x - label_half_width, y = y_label)
+  ) +
+  geom_blank(
+    data = summary_dt[y_label %in% c("other", "same")],
+    aes(x = label_x + label_half_width, y = y_label)
+  ) +
   geom_text(
     data = summary_dt[y_label %in% c("other", "same")],
     aes(
       x = label_x,
       y = y_label,
-      label = label,
-      hjust = label_hjust
+      label = label
     ),
-    vjust = -0.5
+    hjust = 0.5,
+    vjust = -0.5,
+    size = anno_size
   ) +
   geom_segment(
     data = pvalue_summary,
@@ -332,28 +412,23 @@ pair_plot <- ggplot() +
     data = pvalue_summary,
     aes(x = x_mid, y = y_label, label = label),
     vjust = -0.5,
-    color = "grey50"
+    color = "grey50",
+    size = anno_size
   ) +
-  facet_grid(rows = vars(sample_size), cols = vars(pair_label), scales = "free_x") +
+  facet_grid(rows = vars(sample_size_label), cols = vars(pair_label), scales = "free_x") +
   scale_y_discrete(limits = c("other", "same-other", "same")) +
-  scale_x_continuous(expand = expansion(mult = c(0.12, 0.30))) +
+  scale_x_continuous(expand = expansion(mult = c(x_expand_left, x_expand_right))) +
   labs(
     x = x_axis_label,
-    y = "Train subsets"
+    y = custom_ylab
   ) +
-  theme_bw(base_size = 11) +
-  theme(
-    panel.grid.minor = element_blank(),
-    strip.background = element_rect(fill = "grey90", color = "grey40"),
-    strip.text = element_text(color = "grey20"),
-    axis.title.x = element_text(margin = margin(t = 8)),
-    axis.title.y = element_text(margin = margin(r = 8))
-  )
+  coord_cartesian(clip = "off") +
+  theme_bw(base_size = 11)
 
 png(
   out_png,
-  width = max(7.2, 4.8 * length(pair_specs)),
-  height = 3.9,
+  width = custom_width,
+  height = custom_height,
   units = "in",
   res = 300
 )

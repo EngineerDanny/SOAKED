@@ -9,12 +9,12 @@ repo_root <- normalizePath(file.path(dirname(script_path), ".."), mustWork = TRU
 robustness_script <- file.path(repo_root, "figures", "plot_learner_robustness.R")
 time_script <- file.path(repo_root, "figures", "plot_learner_train_time.R")
 output_png <- file.path(repo_root, "results", "learner_panels.png")
-paper_png <- file.path(repo_root, "paper", "figures", "learner_panels.png")
+paper_png <- file.path(repo_root, "paper", "figures", "fig2-learner-panels.png")
 
 robustness_env <- new.env(parent = globalenv())
 sys.source(robustness_script, envir = robustness_env)
 robustness_plot <- robustness_env$figure +
-  labs(title = "A) Learner Robustness Across Train-Subset Conditions") +
+  labs(title = "A) Learner Robustness Across Train Subset Conditions") +
   theme(
     plot.title = element_text(face = "bold", hjust = 0)
   )
@@ -30,5 +30,5 @@ time_plot <- time_env$figure +
 combined_plot <- (robustness_plot / time_plot) +
   plot_layout(heights = c(1.45, 1.4))
 
-ggsave(output_png, combined_plot, width = 18, height = 8, units = "in", dpi = 300, bg = "white")
+ggsave(output_png, combined_plot, width = 13.8, height = 7.2, units = "in", dpi = 300, bg = "white")
 file.copy(output_png, paper_png, overwrite = TRUE)
