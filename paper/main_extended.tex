@@ -323,11 +323,11 @@ The diagonal cases are ambiguous under unequal training sizes, which is precisel
 \begin{table}[t]
 \centering
 \small
-\caption{Qualitative interpretation of Same versus Other before matched-size downsampling.}
+ \caption{Qualitative interpretation of Same versus Other before matched-size downsampling, expressed in terms of predictive performance.}
 \label{tab:scenario-interpretation}
 \begin{tabular}{p{0.28\linewidth}p{0.31\linewidth}p{0.31\linewidth}}
 \toprule
- & \textbf{Other better than Same} & \textbf{Same better than Other} \\
+ & \textbf{Other lower error than Same} & \textbf{Same lower error than Other} \\
 \midrule
 \textbf{Other larger than Same} &
 Ambiguous under unequal training sizes. The apparent advantage of Other may reflect either more training data or a residual subset effect. SOAKED resolves this case by matching train size. &

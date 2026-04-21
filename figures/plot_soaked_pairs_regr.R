@@ -135,7 +135,7 @@ pair_specs <- lapply(pair_args, function(x) {
     dataset = dataset_name,
     test_subset = subset_name,
     pair_label = sprintf(
-      "dataset: %s\ntest_subset:%s",
+      "dataset: %s\ntest_subset: %s",
       dataset_configs[[dataset_name]]$display_name,
       subset_name
     )
