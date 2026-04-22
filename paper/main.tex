@@ -114,6 +114,21 @@ SOAKED retains both the original full-data training sets and matched-size versio
     \label{fig:SOAKED-concept}
 \end{figure}
 
+\subsection{SOAKED workflow}
+\label{sec:workflow}
+
+For one target subset and one outer resampling split, SOAKED proceeds as follows.
+\begin{enumerate}
+    \item \textbf{Fix the evaluation target.} Choose the outer split and the target subset whose test performance will be evaluated.
+    \item \textbf{Train the full-size configurations.} Fit predictors using the Same, Other, and All training configurations with all available training examples allowed by that split and target subset.
+    \item \textbf{Construct matched-size configurations.} Compute the smallest feasible training size among the configurations being compared, and randomly downsample the larger training sets to that size.
+    \item \textbf{Compare full and matched gaps.} Evaluate the full-size and matched-size predictors on the same target-subset test fold, and compute the corresponding performance gaps.
+    \item \textbf{Interpret the difference.} If the full-data advantage largely disappears after matching, the evidence points to a sample-size effect; if a substantial matched-size gap persists, the evidence is consistent with a residual subset effect.
+\end{enumerate}
+
+The same workflow is repeated across outer folds and, when used, across random downsampling seeds.
+The full-data comparison answers which training source wins when all available data are used, whereas the matched-size comparison asks whether that winner would still prevail if training sizes were equalized.
+
 \subsection{Operational decomposition of performance gaps}
 Fix a target subset $t$, and consider two training configurations $a,b \in \mathcal C$, where typically
 $\mathcal C=\{\mathrm{Same},\mathrm{Other},\mathrm{All}\}$.
