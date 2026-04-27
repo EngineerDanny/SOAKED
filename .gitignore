@@ -23,3 +23,4 @@ paper/SKILL.md
 legacy/
 .codex
 /experiments/*_registry/
+*.ppm
