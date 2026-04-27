@@ -133,34 +133,19 @@ $\mathcal C=\{\mathrm{Same},\mathrm{Other}\}$.
 Let $L_t(\hat h_{c,n})$ denote the test loss on target subset $t$ of a predictor trained under configuration $c$ using $n$ training examples, where lower values indicate better performance.
 Throughout, we express performance as a loss with lower values indicating better performance; in our experiments, this is Classification Error Rate for classification and Root Mean Square Error (RMSE) for regression.
 Because the learned predictor $\hat h_{c,n}$ depends on the random training sample, $L_t(\hat h_{c,n})$ is random.
-In practice, we report the empirical estimator
-\begin{equation}
-\widehat{L}_t(c,n)
-:=
-\frac{1}{BR}\sum_{b=1}^B \sum_{r=1}^R L_t^{(b,r)}(\hat h_{c,n}),
-\label{eq:empirical-loss}
-\end{equation}
-where $B$ is the number of outer cross-validation splits, $R$ is the number of random downsampling seeds, and $L_t^{(b,r)}(\hat h_{c,n})$ denotes the test loss on target subset $t$ for outer split $b$ and seed $r$.
-For full-data comparisons with no downsampling, we use $R=1$.
+In practice, we average test losses over outer cross-validation folds and, when downsampling is used, over random downsampling seeds.
 
-Let $n_a$ and $n_b$ denote the full available training sizes for configurations $a$ and $b$, respectively, and let
-\[
-n_0 = \min(n_a,n_b)
-\]
-denote the matched training size used after downsampling.
-We define the full-data gap by
+Let $n_a$ and $n_b$ denote the full available training sizes for configurations $a$ and $b$, respectively, and let $n_0 = \min(n_a,n_b)$ denote the matched training size used after downsampling.
+We compare the full-data and matched-size gaps:
 \begin{equation}
 \Delta_t^{\mathrm{full}}(a,b)
 :=
 L_t(\hat h_{a,n_a}) - L_t(\hat h_{b,n_b}),
-\label{eq:full-gap}
-\end{equation}
-and the matched-size gap by
-\begin{equation}
+\qquad
 \Delta_t^{\mathrm{match}}(a,b)
 :=
 L_t(\hat h_{a,n_0}) - L_t(\hat h_{b,n_0}).
-\label{eq:matched-gap}
+\label{eq:gaps}
 \end{equation}
 
 \paragraph{Why match at the minimum size.}
@@ -170,31 +155,7 @@ Any larger matched size would reduce $\delta_s$ and make it easier for the size-
 The minimum is also uniquely defined and requires no tuning, avoiding the additional degree of freedom introduced by alternative target sizes.
 The minimum also directly answers the relevant counterfactual: \emph{would the larger-subset configuration still win if it only had as much data as its competitor?} If not, the observed advantage is fully explained by sample size.
 
-This is an operational decomposition: the matched-size gap is interpreted as the residual performance difference after controlling for training size, and the remainder of the full-data gap is attributed to unequal training size.
-Accordingly, we define the subset-effect component as
-\begin{equation}
-\Delta_t^{\mathrm{subset}}(a,b)
-:=
-\Delta_t^{\mathrm{match}}(a,b),
-\label{eq:subset-component}
-\end{equation}
-and the sample-size-effect component as
-\begin{equation}
-\Delta_t^{\mathrm{size}}(a,b)
-:=
-\Delta_t^{\mathrm{full}}(a,b)-\Delta_t^{\mathrm{match}}(a,b).
-\label{eq:size-component}
-\end{equation}
-These definitions yield the exact identity
-\begin{equation}
-\Delta_t^{\mathrm{full}}(a,b)
-=
-\Delta_t^{\mathrm{size}}(a,b)
-+
-\Delta_t^{\mathrm{subset}}(a,b).
-\label{eq:gap-decomposition}
-\end{equation}
-
+This is an operational decomposition: the matched-size gap is interpreted as the residual subset component after controlling for training size, and the difference between the full-data and matched-size gaps is attributed to unequal training size.
 The subset component should be interpreted broadly as the residual performance difference at matched training size.
 This residual may reflect source-target alignment, label noise, support coverage, class balance, or other factors affecting the usefulness of samples for the target task.
 
@@ -207,59 +168,23 @@ Then $\mathbb{E}[\Delta_t^{\mathrm{match}}(a,b)] = 0$ for all matched training s
 Consequently, a nonzero empirical matched-size gap is evidence against exchangeability of the two subsets.
 \end{lemma}
 
-\begin{proposition}[Characterization of ordering reversal]
-\label{prop:reversal}
-Let $f_c(n) = \mathbb{E}[L_t(\hat{h}_{c,n})]$ and suppose $n_b \geq n_a$, so $n_0 = n_a$.
-Let $\delta_q := f_b(n_0) - f_a(n_0)$ be the quality advantage of $a$ at matched size, and $\delta_s := f_b(n_0) - f_b(n_b) \geq 0$ be the size gain of $b$.
-Then $\mathbb{E}[\Delta_t^{\mathrm{match}}] = -\delta_q$ and $\mathbb{E}[\Delta_t^{\mathrm{full}}] = \delta_s - \delta_q$.
-Ordering reversal occurs if and only if $0 < \delta_q < \delta_s$: $a$ is the better source at matched size, but $b$'s size advantage is large enough to overcome that quality deficit.
-If $\delta_s = 0$, reversal is impossible and SOAK suffices; if $\delta_q = 0$, the gap is a pure sample-size effect.
-\end{proposition}
-
-In practice, we report the empirical versions
-\begin{equation}
-\widehat{\Delta}_t^{\mathrm{full}}(a,b)
-:=
-\widehat{L}_t(a,n_a)-\widehat{L}_t(b,n_b),
-\qquad
-\widehat{\Delta}_t^{\mathrm{match}}(a,b)
-:=
-\widehat{L}_t(a,n_0)-\widehat{L}_t(b,n_0),
-\label{eq:empirical-gaps}
-\end{equation}
-with
-\[
-\widehat{\Delta}_t^{\mathrm{subset}}(a,b)
-:=
-\widehat{\Delta}_t^{\mathrm{match}}(a,b),
-\qquad
-\widehat{\Delta}_t^{\mathrm{size}}(a,b)
-:=
-\widehat{\Delta}_t^{\mathrm{full}}(a,b)-\widehat{\Delta}_t^{\mathrm{match}}(a,b).
-\]
+The same decomposition explains ordering reversals: one configuration can be better at matched size, while another can win in the full-data comparison only because it has more training examples.
+Appendix~\ref{app:proofs} gives a formal characterization.
 
 \subsection{Statistical test for the subset effect}
 \label{sec:ttest}
 
-Proposition~\ref{prop:reversal} establishes that $\mathbb{E}[\Delta_t^{\mathrm{match}}(a,b)] = 0$ when the two subsets are exchangeable (Lemma~\ref{lem:exchangeability}), making the matched-size gap a natural test statistic for a genuine subset effect.
+Lemma~\ref{lem:exchangeability} establishes that $\mathbb{E}[\Delta_t^{\mathrm{match}}(a,b)] = 0$ when the two subsets are exchangeable, making the matched-size gap a natural test statistic for a genuine subset effect.
 We test $H_0\colon \mathbb{E}[\Delta_t^{\mathrm{match}}(a,b)] = 0$ using a paired $t$-test on fold-level gap estimates (equivalently, a one-sample $t$-test on the differences).
 
-For each outer cross-validation fold $b \in \{1,\ldots,B\}$, we compute the fold-level matched-size gap
-\[
-\bar\Delta_b^{\mathrm{match}}
-:=
-\frac{1}{R}\sum_{r=1}^R
-\Bigl[L_t^{(b,r)}(\hat h_{a,n_0}) - L_t^{(b,r)}(\hat h_{b,n_0})\Bigr],
-\]
-averaging over the $R$ downsampling seeds within that fold.
+For each outer cross-validation fold, we compute the matched-size loss difference for each downsampling seed and average these seed-level differences within the fold.
 We then apply a paired $t$-test to $\{\bar\Delta_1^{\mathrm{match}},\ldots,\bar\Delta_B^{\mathrm{match}}\}$ against the null mean of zero.
-Fold-level gap estimates are independent across folds by construction of cross-validation, satisfying the independence assumption of the $t$-test.
 Rejecting $H_0$ is evidence of a subset effect that the sample-size component alone cannot explain.
 This procedure is implemented in \texttt{mlr3resampling::pvalue\_downsample()}.
 
 Two caveats are worth surfacing here.
 First, with $B=5$ or $B=10$ folds the test has only $4$ or $9$ degrees of freedom, so it has limited power; a non-significant result should be interpreted as insufficient evidence of a subset effect, not as evidence of none.
-Second, averaging over $R$ seeds within a fold suppresses variance from random downsampling, which makes the test conservative on variance, and although fold-level estimates are independent the training sets across folds may share examples in standard $K$-fold splits, slightly inflating dependence.
+Second, averaging over $R$ seeds within a fold suppresses variance from random downsampling, which makes the test conservative on variance, and the training sets across folds may share examples in standard $K$-fold splits, slightly inflating dependence.
 Both effects bias the test toward conservatism, so rejections should be regarded as robust evidence.
 
 For the traffic data (Phoenix and Baltimore test subsets, \texttt{rpart} learner, $B=5$ folds), the matched-size $t$-test on the Same--Other gap gives $p = 0.0001$ (Phoenix) and $p = 0.0007$ (Baltimore), strongly rejecting exchangeability and confirming a genuine geographic subset effect.
@@ -556,12 +481,22 @@ Finally, SOKED inherits the computational cost of running benchmark experiments 
 
 \appendix
 \section{Proofs}
+\label{app:proofs}
 
 \begin{proof}[Proof of Lemma~\ref{lem:exchangeability}]
 Under the stated conditions, the joint distribution of $(X_i, Y_i)$ is the same for observations drawn from subset $a$ as for those drawn from subset $b$.
 Given $n_0$ training examples, the predictors $\hat{h}_{a,n_0}$ and $\hat{h}_{b,n_0}$ therefore have the same distribution over the randomness of the training draw.
 It follows that $\mathbb{E}[L_t(\hat{h}_{a,n_0})] = \mathbb{E}[L_t(\hat{h}_{b,n_0})]$, giving $\mathbb{E}[\Delta_t^{\mathrm{match}}(a,b)] = 0$.
 \end{proof}
+
+\begin{proposition}[Characterization of ordering reversal]
+\label{prop:reversal}
+Let $f_c(n) = \mathbb{E}[L_t(\hat{h}_{c,n})]$ and suppose $n_b \geq n_a$, so $n_0 = n_a$.
+Let $\delta_q := f_b(n_0) - f_a(n_0)$ be the quality advantage of $a$ at matched size, and $\delta_s := f_b(n_0) - f_b(n_b) \geq 0$ be the size gain of $b$.
+Then $\mathbb{E}[\Delta_t^{\mathrm{match}}] = -\delta_q$ and $\mathbb{E}[\Delta_t^{\mathrm{full}}] = \delta_s - \delta_q$.
+Ordering reversal occurs if and only if $0 < \delta_q < \delta_s$: $a$ is the better source at matched size, but $b$'s size advantage is large enough to overcome that quality deficit.
+If $\delta_s = 0$, reversal is impossible and SOAK suffices; if $\delta_q = 0$, the gap is a pure sample-size effect.
+\end{proposition}
 
 \begin{proof}[Proof of Proposition~\ref{prop:reversal}]
 By definition, $\mathbb{E}[\Delta_t^{\mathrm{match}}(a,b)] = f_a(n_0) - f_b(n_0) = -\delta_q$.
