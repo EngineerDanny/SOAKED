@@ -74,11 +74,13 @@ We demonstrate this and related phenomena across simulated regression, benchmark
 \paragraph{Summary of contributions.}
 We make four contributions.
 \begin{enumerate}
-  \item \textbf{SOKED algorithm.} We propose the SOKED algorithm, ... (no existing code)
+  \item \textbf{SOKED algorithm and software gap.} We propose SOKED, an algorithmic extension of SOAK that uses matched-size downsampling to distinguish sample-size effects from residual subset effects.
+  To our knowledge, no existing codebase implements this Same/Other/All diagnostic with matched-size comparisons, so SOKED fills a practical software gap for subset-aware cross-validation.
   \item \textbf{Formal decomposition.} We introduce a decomposition of cross-validation performance gaps into a sample-size component and a residual subset component, grounded in matched-size downsampling.
   Lemma~\ref{lem:exchangeability} characterizes when the subset component is zero.
-  \item \textbf{Empirical demonstrations.} We show across simulated and real datasets, including demographic subsets relevant to fairness auditing, that the proposed SOKED algorithm ...
-  \item new proposed standard file format for benchmarks, with 8 data sets... (columns fold subset y x)
+  \item \textbf{Empirical demonstrations.} We show across simulated and real datasets, including demographic subsets relevant to fairness auditing, that the proposed SOKED algorithm separates apparent advantages caused by unequal training-set sizes from residual subset effects that persist after size matching.
+  \item \textbf{Benchmark file format.} We propose a simple standard file format for subset-aware benchmarking and release eight datasets in that format.
+  Each benchmark file makes the resampling split, subset label, target, and predictors explicit using \texttt{fold}, \texttt{subset}, \texttt{y}, and \texttt{x} columns.
 \end{enumerate}
 
 
@@ -253,9 +255,9 @@ If our goal is to have good predictions for females, we would like to know if tr
 
 \textbf{NSCH autism (classification).}
 The National Survey of Children's Health (NSCH) is a nationally representative annual survey conducted by the U.S.\ Census Bureau \citep{NSCH2019,NSCH2020}.
-We use survey years 2019 and 2020 as the two SOKED subsets (18,202 and 27,808 children respectively).
-Each row represents one child, with survey responses provided by an adult familiar with the child's health, and the features encode questionnaire items on diagnoses, family income, insurance coverage, healthcare access, neighborhood conditions, and related factors.
-The target is a binary autism diagnosis indicator ($\approx3\%$ positive rate).
+We use survey years 2019 and 2020 as the two SOAKED subsets (18,202 and 27,808 children, respectively).
+Each row represents one child ages 3-17 years, with survey responses provided by an adult familiar with the child’s health, and the features encode questionnaire items on condition diagnoses, family income, insurance coverage, healthcare access, neighborhood conditions, and other health-related factors. 
+The target is a binary autism identification (was the child ever diagnosed with autism by a doctor/other healthcare provider) indicator. 
 If our goal is to have good predictions for 2020, we would like to know if training on 2020 is more accurate because of the increased sample size, or because it is somehow different from 2019.
 
 \textbf{STL-10 (classification).}
@@ -358,7 +360,9 @@ Panel B shows that these predictive gains come with large differences in computa
 Featureless, \texttt{rpart}, and \texttt{glmnet} train in approximately 0.002, 0.12, and 0.44 seconds per run, respectively, whereas the tuned torch MLP requires about 32.2 seconds.
 Because the main SOKED diagnosis is stable across these learner families, we use \texttt{rpart} in the remaining experiments as a simple nonlinear default that is much cheaper than the neural network, substantially cheaper than \texttt{glmnet}, and still captures the same subset-dependent structure.
 
-For qSIP, Figure~\ref{fig:regr-pairs} (middle column) shows SOKED results for the \texttt{dim.control} test subset: Same ($0.0155$) substantially outperforms Other ($0.0399$) at full sizes ($p < 0.0001$), and this gap persists after size-matching ($p < 0.0001$), confirming a strong treatment subset effect.
+For qSIP, Figure~\ref{fig:regr-pairs} (middle column) shows SOKED results for the \texttt{qme.15} test subset.
+At full training sizes, Same ($N=4{,}131$, RMSE $=0.0377$) outperforms Other ($N=2{,}808$, RMSE $=0.0564$), so the naive comparison could be attributed to Same having more training examples.
+After downsampling Same to $n_0 = 2{,}808$, the gap persists (Same $0.0381$ vs.\ Other $0.0564$, $p < 0.0001$), confirming a strong residual subset effect.
 
 For workers' compensation, Figure~\ref{fig:regr-pairs} (right column) shows the Female test subset.
 At full training sizes, Other ($N=69{,}454$) outperforms Same ($N=20{,}545$) in RMSE ($1.741$ vs.\ $1.753$, $p < 0.0001$).
@@ -369,7 +373,6 @@ This is the sample-size pattern SOKED is designed to reveal: most of the apparen
     \centering
     \includegraphics[width=\textwidth]{fig5-regr-pairs.png}
     \caption{
-    TODO qsip show other test subset, make sure larger N has lower error.
     SOKED results for three regression datasets (rpart learner, 10-fold CV), comparing Same and Other at full and matched training sizes by target subset.
     Each column corresponds to one dataset--test-subset pair.}
     \label{fig:regr-pairs}

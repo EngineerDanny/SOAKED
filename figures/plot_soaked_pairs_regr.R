@@ -4,7 +4,7 @@ library(ggplot2)
 default_output_tag <- "rpart"
 default_pair_specs <- c(
   "traffic:Phoenix",
-  "qsip_dim.control_vs_qme.15:dim.control",
+  "qsip_dim.control_vs_qme.15:qme.15",
   "workers_compensation:F"
 )
 default_xlab <- "Test RMSE (mean±SD, 10 CV folds)"
