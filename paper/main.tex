@@ -184,10 +184,9 @@ We then apply a paired $t$-test to $\{\bar\Delta_1^{\mathrm{match}},\ldots,\bar\
 Rejecting $H_0$ is evidence of a subset effect that the sample-size component alone cannot explain.
 This procedure is implemented in \texttt{mlr3resampling::pvalue\_downsample()}.
 
-Two caveats are worth surfacing here.
-First, with $B=5$ or $B=10$ folds the test has only $4$ or $9$ degrees of freedom, so it has limited power; a non-significant result should be interpreted as insufficient evidence of a subset effect, not as evidence of none.
-Second, averaging over $R$ seeds within a fold suppresses variance from random downsampling, which makes the test conservative on variance, and the training sets across folds may share examples in standard $K$-fold splits, slightly inflating dependence.
-Both effects bias the test toward conservatism, so rejections should be regarded as robust evidence. 
+We interpret these $p$-values as diagnostic summaries of the fold-level Same--Other gaps rather than as exact inferential guarantees.
+The main evidence for SOKED conclusions comes from the direction, magnitude, and persistence of the matched-size gaps.
+This use matches the diagnostic goal of SOKED: the $p$-values summarize whether matched-size gaps are consistently different from zero across folds.
 For the traffic data (Phoenix and Baltimore test subsets, \texttt{rpart} learner), the matched-size Same--Other gaps remain large and highly significant for both target cities ($p < 0.001$), providing strong evidence of a residual geographic subset effect after controlling for training-set size.
 Results across all datasets are summarized in Table~\ref{tab:results-summary}.
 
@@ -233,8 +232,10 @@ In \texttt{different}, the large subset (N=400) has less noise ($\sigma=0.1$) th
 % Both are used to assess seed robustness with 100 independent downsampling seeds and to verify that SOKED recovers the expected distinction between true subset differences and pure size imbalance.
 
 \textbf{Traffic (regression).}
-The traffic dataset contains road-segment observations from Phoenix and Baltimore, which serve as the two SOKED subsets.
+% The traffic dataset contains road-segment observations from Phoenix and Baltimore, which serve as the two SOKED subsets.
+The traffic dataset contains gapfilled \citep{FHWA2016HPMSShapefile} road-segment observations from Phoenix and Baltimore originating from the Highway Performance Monitoring System \citep{Gurney2025Vulcan}, which serve as the two SOAKED subsets.
 Each row represents one road segment, the prediction target is log-transformed Average Annual Daily Traffic (AADT) \citep{bilal_hpms_aadt}, and the feature set combines night-time lights \citep{bilal_ntl_viirs}, population \citep{bilal_worldpop}, road density \citep{bilal_osm_roads}, and Sentinel-2 \citep{bilal_sentinel2} satellite bands (7 features, 128,792 rows).
+The Sentinel-2 bands are RGB and NIR (red, green, blue, and near-infrared).
 This setting asks whether training on data from the same city is more predictive than training on the other city or on both cities pooled together.
 We also use this dataset to assess learner robustness, comparing featureless, \texttt{rpart}, \texttt{cv\_glmnet}, and a torch-based MLP over 5-fold CV.
 
@@ -245,7 +246,7 @@ performed in various sites and time periods.
 In each experiment there are relatively few data (~1000s), so the goal of analysis is to determine whether data sets are consistent enough to be combined and analyzed together.
 Controls were combined from two experiments (DIM and QME), yielding data with two subsets: \texttt{dim.control} (3,120 observations) and \texttt{qme.15} (4,590 observations).
 Each row is an observation characterized by 8,380 KEGG ortholog indicators, and the prediction target is \texttt{growth\_per\_day}.
-The regression problem is to try to predict growth rate for QME controls (with training using either QME or DIM controls), to see if results for controls generalize to different experimental contexts.
+If our goal is to predict growth rate for \texttt{qme.15}, we would like to know whether training on \texttt{qme.15} is more accurate than training on \texttt{dim.control} because QME has more examples, or because the two experiments have different learnable growth patterns.
 
 \textbf{Workers' compensation (regression).}
 The workers' compensation dataset is a benchmark of 100,000 synthetically generated insurance claims \citep{Ali2020}.
@@ -254,7 +255,7 @@ If our goal is to have good predictions for females, we would like to know if tr
 
 \textbf{NSCH autism (classification).}
 The National Survey of Children's Health (NSCH) is a nationally representative annual survey conducted by the U.S.\ Census Bureau \citep{NSCH2019,NSCH2020}.
-We use survey years 2019 and 2020 as the two SOKED subsets (18,202 and 27,808 children, respectively).
+We use survey years 2019 and 2020 as the two SOAKED subsets (18,202 and 27,808 children, respectively).
 Each row represents one child ages 3-17 years, with survey responses provided by an adult familiar with the child's health, and the features encode questionnaire items on condition diagnoses, family income, insurance coverage, healthcare access, neighborhood conditions, and other health-related factors. 
 The target is a binary autism identification (was the child ever diagnosed with autism by a doctor/other healthcare provider) indicator. 
 If our goal is to have good predictions for 2020, we would like to know if training on 2020 is more accurate because of the increased sample size, or because it is somehow different from 2019.
@@ -470,7 +471,7 @@ Future work includes extending the downsampling strategy to pooled training conf
 \paragraph{Limitations.}
 The decomposition is operational rather than causal: a persistent matched-size gap is evidence against exchangeability but does not identify which distributional factor drives it.
 SOKED always matches at the minimum training size, the most conservative choice; when one subset is very large, this discards substantial data and reduces statistical power.
-The statistical caveats discussed in Section~\ref{sec:ttest} (low degrees of freedom at $B=5$ or $B=10$, conservative variance from seed averaging, and possible mild dependence from fold overlap) all bias the test toward conservatism and should be kept in mind when interpreting non-significant results.
+As discussed in Section~\ref{sec:ttest}, the reported $p$-values are diagnostic summaries of fold-level gaps, not exact inferential guarantees; SOKED conclusions should therefore be read together with the observed direction and magnitude of the matched-size gaps.
 Finally, SOKED inherits the computational cost of running benchmark experiments at two training sizes; for expensive learners such as deep neural networks, this may be prohibitive.
 
 \begin{ack}
