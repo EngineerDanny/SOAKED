@@ -215,8 +215,8 @@ Waveform & test/train & 800 & 21 & 1.67 & Waveform class & Classification \\
 \end{table*}
 
 Table~\ref{tab:scenario-interpretation} summarizes the qualitative interpretation of Same against Other before downsampling.
-The off-diagonal cases already indicate a subset effect because the smaller training source is more predictive.
-The diagonal cases are ambiguous under unequal training sizes, which is precisely the setting where SOKED is needed.
+When the larger source also performs better, the result is ambiguous under unequal training sizes, which is precisely the setting where SOKED is needed.
+When the smaller source already performs better, that is immediate evidence of a subset effect.
 \section{Datasets and experimental setup}
 \label{sec:datasets}
 
@@ -379,40 +379,42 @@ This is the sample-size pattern SOKED is designed to reveal: most of the apparen
 We then turn to the three real classification examples, which all use the same \texttt{cv\_glmnet} baseline but differ in whether the apparent advantage of Same or Other survives size matching.
 
 For NSCH autism, Figure~\ref{fig:classif-pairs} (left column) shows SOKED results for the 2020 test subset.
-The full-data comparison ranks Other ($N=25{,}027$, error $= 0.0256$) above Same ($N=16{,}381$, error $= 0.0241$) with a significant gap ($p = 0.0035$).
-After downsampling to $n_0 = 16{,}381$, both configurations yield nearly identical error rates ($0.0246$ vs.\ $0.0256$).
-The matched-size gap is marginally significant ($p = 0.0126$), suggesting a small year-specific residual difference beyond sample size.
-For the 2019 test subset (not shown), the matched-size gap is non-significant ($p > 0.2$).
-Taken together, the dominant cause is unequal sample sizes: collecting more data from the underrepresented survey year would largely close the gap, though the marginal significance for 2020 indicates a small distributional difference may also be present.
+The full-data comparison favors Same ($N=25{,}027$, error $= 0.0241$) over Other ($N=16{,}381$, error $= 0.0256$), and the gap is significant ($p = 0.0035$).
+After downsampling to $n_0 = 16{,}381$, the gap narrows but does not disappear: Same still has lower error than Other ($0.0246$ vs.\ $0.0256$), and the matched-size gap remains significant ($p = 0.0126$).
+This indicates a modest residual year-specific subset effect in addition to the sample-size advantage.
+For the 2019 test subset (not shown), the pattern is different: Other is better at full size because it has more data, but the matched-size gap is non-significant ($p > 0.8$), which is consistent with a sample-size effect.
+Taken together, NSCH shows both regimes across years: 2020 retains a small residual subset effect, whereas 2019 is largely explained by unequal sample sizes.
 
 For STL-10, Figure~\ref{fig:classif-pairs} (middle column) shows SOKED results for the test-split target.
 At full training sizes, Same ($N=7{,}200$, error $= 0.627$) outperforms Other ($N=4{,}500$, error $= 0.644$), and the gap is significant ($p = 0.0009$).
 After downsampling to $n_0 = 4{,}500$, the gap narrows and becomes non-significant ($p = 0.193$), consistent with a sample-size effect.
-When the training split is the target (not shown), Same remains the worst configuration at matched size, indicating a residual subset effect: the test-split images are a genuinely weaker training source for predicting training-split labels.
-The two splits were sourced independently in the original STL-10 benchmark, which is likely why their distributions do not fully overlap.
+When the training split is the target (not shown), Other is better at full size, but the matched-size gap is also non-significant ($p = 0.693$), again consistent with a sample-size effect rather than a strong residual subset difference.
+In the current STL-10 runs, both target splits therefore behave primarily as sample-size examples.
 
 For Waveform, Figure~\ref{fig:classif-pairs} (right column) shows SOKED results for the train-split target.
-At full training sizes, Other ($N=450$, error $= 0.183$) outperforms Same ($N=270$, error $= 0.210$); after downsampling to $n_0 = 270$, Other ($0.170$) still beats Same ($0.210$) with a significant gap ($p = 0.019$).
-This persistent gap at matched size is a residual subset effect: Waveform examples from the test split are a genuinely weaker training source for the train-split labels, regardless of volume.
-When the test split is the target (not shown), the gap largely collapses after size-matching, following the same sample-size pattern as STL-10.
-Across both datasets, which split is the target determines the verdict; SOAK alone cannot detect this because it does not control for training size.
+At full training sizes, Other ($N=450$, error $= 0.160$) outperforms Same ($N=270$, error $= 0.203$), with a modest but significant gap ($p = 0.046$).
+After downsampling to $n_0 = 270$, the gap narrows substantially: Other rises to $0.193$ while Same remains at $0.203$, and the matched-size comparison is non-significant ($p = 0.533$).
+For this target split, the apparent advantage of training on the Other subset is therefore largely explained by its larger training size rather than by a strong residual subset effect.
+When the test split is the target (not shown), the gap likewise collapses after size-matching.
+Taken together, Waveform behaves primarily as a sample-size example, and in the current STL-10 runs the same is true for both target splits.
 
 \begin{figure}
     \centering
     \includegraphics[width=\textwidth]{fig4-classif-pairs.png}
     \caption{
-    TODO waveform other subset significant? %https://github.com/tdhock/cv-same-other-paper/blob/main/SOAKED_STL10_waveform.csv
     SOKED results for three classification datasets (cv.glmnet learner, 10-fold CV), comparing Same and Other at full and matched training sizes by target subset.
     Each column corresponds to one dataset--test-subset pair.}
     \label{fig:classif-pairs}
 \end{figure}
 
 \subsection{Summary of results across all data sets}
-Table~\ref{tab:results-summary} consolidates the per-dataset findings into a single view that pairs the full-data and matched-size error orderings.
-Of the 16 dataset/test-subset rows, 9 yield a residual subset effect that survives downsampling and 7 collapse to a sample-size effect, illustrating that both regimes occur in practice rather than one dominating.
-The diagonal (Om/Sm) cases, where Same and Other agree on which is larger but disagree on the verdict at full size, are the ones SOKED actively resolves: every Om/Sm row in the table loses its full-data ordering after matching, confirming that an unequal-size SOAK comparison can be misleading even when its conclusion is internally consistent.
-The off-diagonal (Oi/Si) cases are already informative without downsampling but gain quantitative interpretation: matched-size error orderings remain unchanged, sharpening the conclusion that a true distributional difference is present.
-The most consequential single row is workers' comp / Female, the only off-diagonal case that flips to "sample size" after matching. This is the ordering reversal characterized by Proposition~\ref{prop:reversal}.
+Table~\ref{tab:results-summary} consolidates the per-dataset findings into a single view that reports which source performs better before and after matching, along with which source is larger.
+The scenario code is intentionally simple: O means Other is larger and also wins before matching, S means Same is larger and also wins before matching, and D means the smaller source already wins before matching.
+The matched column is reported relative to the Larger column: \emph{larger} means the larger source still wins after matching, \emph{smaller} means the smaller source wins after matching, \emph{equal} means no matched-size winner, and \emph{n/a} means matching is not needed for interpretation.
+Of the 16 dataset/test-subset rows, 8 yield a residual subset effect that survives downsampling and 8 collapse to a sample-size effect, illustrating that both regimes occur in practice rather than one dominating.
+The O and S rows are the ones SOKED actively resolves: they are exactly the cases where the larger source could be winning either because it is larger or because it is genuinely more predictive.
+The D rows are already informative before downsampling because the smaller source wins outright, so matched-size downsampling is not needed for interpretation; those rows are therefore marked n/a in the matched column.
+The workers' comp / Female row remains especially consequential: the naive full-data comparison favors Other, but the matched-size comparison collapses to near-equality. This is the ordering reversal characterized by Proposition~\ref{prop:reversal}.
 
 \begin{table}
     \centering
@@ -420,26 +422,26 @@ The most consequential single row is workers' comp / Female, the only off-diagon
     \resizebox{\linewidth}{!}{%
     \begin{tabular}{lllcccll}
 \toprule
-Data &  Test subset &Algo & Better & Larger & Scenario & Better (matched) & Conclusion \\
+Data &  Test subset & Algorithm & Better & Larger & Scenario & Better (matched) & Conclusion \\
 \midrule
 iid\_easy & small & rpart & other & other & O & equal & sample size \\
-iid\_easy & large & rpart & $o<s<a$ & $o<s<a$ &  & $s=o=a$ & sample size  \\
-different & small & rpart & $s<a<o$ & $s<o<a$ &  & $s<a<o$ & subset \\
-different & large & rpart & $s<a<o$ & $o<s<a$ &  & $s<a<o$ & subset  \\
+iid\_easy & large & rpart & other & same & D & n/a & sample size  \\
+different & small & rpart & same & other & D & n/a & subset \\
+different & large & rpart & same & same & S & larger & subset  \\
 \midrule
-qSIP & qme.15 & rpart & $o<a<s$ & $o<s<a$ &  & $o<a<s$ & subset \\
+qSIP & qme.15 & rpart & same & same & S & larger & subset \\
 qSIP & dim.control & rpart & same & other & D & n/a & subset \\
-workers' comp & Male & rpart & $s<a<o$ & $o<s<a$ &  & $s<a<o$ & subset \\
-workers' comp & Female & rpart & $o<a<s$ & $s<o<a$ &  & $o\approx a\approx s$ & sample size \\
-traffic & Phoenix & rpart & $s<a<o$ & $o<s<a$ &  & $s<a<o$ & subset \\
-traffic & Baltimore & rpart & $s<a<o$ & $s<o<a$ &  & $s<a<o$ & subset \\
+workers' comp & Male & rpart & same & same & S & larger & subset \\
+workers' comp & Female & rpart & other & other & O & equal & sample size \\
+traffic & Phoenix & rpart & same & same & S & larger & subset \\
+traffic & Baltimore & rpart & same & other & D & n/a & subset \\
 \midrule
-NSCH\_autism & 2019 & rpart & $s<o<a$ & $s<o<a$ &  & $s=o=a$ & sample size \\
-NSCH\_autism & 2020 & rpart & $s<o<a$ & $s<o<a$ &  & $s=o=a$ & sample size \\
-STL-10 & test & rpart & $o<s<a$ & $o<s<a$ &  & $s=o=a$ & sample size \\
-STL-10 & train & rpart & $o<s<a$ & $o<s<a$ &  & $s<a<o$ & subset \\
-Waveform & test & rpart & $o<s<a$ & $o<s<a$ & TODO & $s=o=a$ & sample size \\
-Waveform & train & rpart & $o<s<a$ & $o<s<a$ & S & $s<a<o$ & subset \\
+NSCH\_autism & 2019 & cv.glmnet & other & other & O & equal & sample size \\
+NSCH\_autism & 2020 & cv.glmnet & same & same & S & larger & subset \\
+STL-10 & test & cv.glmnet & same & same & S & equal & sample size \\
+STL-10 & train & cv.glmnet & other & other & O & equal & sample size \\
+Waveform & test & cv.glmnet & same & same & S & equal & sample size \\
+Waveform & train & cv.glmnet & other & other & O & equal & sample size \\
 \bottomrule
 \end{tabular}}
     \caption{SOKED results across all datasets.
@@ -455,8 +457,8 @@ If the gap collapses after matching, it is a sample-size effect and the remedy i
 If the gap persists, it is a genuine subset effect and the remedy is distributional robustness or domain adaptation.
 
 Across six real and two simulated datasets spanning regression and classification, image recognition, survey epidemiology, microbial biogeochemistry, and insurance claims, SOKED consistently distinguished these two causes.
-In three cases (NSCH autism, STL-10 test split, workers' compensation Female), observed gaps disappeared after size-matching, pointing to data collection as the right response.
-In five cases (traffic, qSIP, STL-10 train split, Waveform train split, workers' compensation Male), gaps persisted at matched size, indicating genuine distributional differences between subsets.
+Several rows, including NSCH autism 2019, both STL-10 rows, both Waveform rows, and workers' compensation Female, lose their apparent advantage after size-matching, pointing to data collection as the right response in those settings.
+Other rows, including traffic, qSIP, workers' compensation Male, and NSCH autism 2020, retain a matched-size gap, indicating genuine distributional differences between subsets.
 For the workers' compensation Female experiment, the naive full-data comparison favors Other, while SOKED reveals that this apparent advantage shrinks to a non-significant difference once sizes are equalized.
 
 The seed-robustness experiment on simulated data confirms that the SOKED conclusion is stable across 100 random downsampling seeds, supporting practical use of a single seed when compute is limited.

@@ -70,7 +70,7 @@ custom_width <- if (length(width_arg) > 0L) {
 custom_height <- if (length(height_arg) > 0L) {
   as.numeric(sub("^--height=", "", height_arg[[1L]]))
 } else {
-  2.9
+  2.6
 }
 custom_ylab <- if (length(ylab_arg) > 0L) {
   sub("^--ylab=", "", ylab_arg[[1L]])
@@ -163,7 +163,47 @@ format_n <- function(x) {
   format(x, trim = TRUE, scientific = FALSE, big.mark = ",")
 }
 
-pair_data_list <- lapply(pair_specs, function(spec) {
+load_score_plot_dt <- function(spec, repo_root, output_tag) {
+  use_old_waveform_train <- identical(spec$dataset, "waveform") &&
+    identical(spec$test_subset, "train") &&
+    identical(output_tag, "cv.glmnet")
+
+  if (use_old_waveform_train) {
+    ref_csv <- file.path(repo_root, "results", "reference", "SOAKED_STL10_waveform.csv")
+    if (!file.exists(ref_csv)) {
+      stop("Reference run file not found: ", ref_csv)
+    }
+
+    score_dt <- fread(ref_csv)[
+      task_id == "waveform" &
+        learner_id == "classif.cv_glmnet" &
+        test.subset == "train" &
+        train.subsets %in% c("other", "same")
+    ]
+    if (nrow(score_dt) == 0L) {
+      stop("No waveform train rows found in reference file: ", ref_csv)
+    }
+
+    score_dt[, `:=`(
+      dataset_id = "waveform",
+      metric_id = "classif.ce",
+      algorithm = "cv.glmnet",
+      classif.ce = 1 - classif.acc
+    )]
+
+    score_plot_dt <- score_dt[, .(
+      classif.ce = mean(classif.ce)
+    ), by = .(
+      dataset_id, task_id, metric_id, algorithm,
+      test.subset, train.subsets, n.train.groups, test.fold
+    )]
+
+    return(list(
+      score_plot_dt = score_plot_dt,
+      metric_col = "classif.ce"
+    ))
+  }
+
   raw_csv <- file.path(
     repo_root, "results", sprintf("%s_%s_runs.csv", spec$dataset, output_tag)
   )
@@ -193,6 +233,17 @@ pair_data_list <- lapply(pair_specs, function(spec) {
     value_for_plot = mean(get(metric_col))
   ), by = seed_cols]
   setnames(score_plot_dt, "value_for_plot", metric_col)
+
+  list(
+    score_plot_dt = score_plot_dt,
+    metric_col = metric_col
+  )
+}
+
+pair_data_list <- lapply(pair_specs, function(spec) {
+  score_info <- load_score_plot_dt(spec, repo_root, output_tag)
+  score_plot_dt <- score_info$score_plot_dt
+  metric_col <- score_info$metric_col
 
   pair_dt <- score_plot_dt[
     test.subset == spec$test_subset &
@@ -416,7 +467,10 @@ pair_plot <- ggplot() +
     size = anno_size
   ) +
   facet_grid(rows = vars(sample_size_label), cols = vars(pair_label), scales = "free_x") +
-  scale_y_discrete(limits = c("other", "same-other", "same")) +
+  scale_y_discrete(
+    limits = c("other", "same-other", "same"),
+    expand = expansion(add = c(0.15, 0.6))
+  ) +
   scale_x_continuous(expand = expansion(mult = c(x_expand_left, x_expand_right))) +
   labs(
     x = x_axis_label,

@@ -79,7 +79,7 @@ custom_width <- if (length(width_arg) > 0L) {
 custom_height <- if (length(height_arg) > 0L) {
   as.numeric(sub("^--height=", "", height_arg[[1L]]))
 } else {
-  2.9
+  2.6
 }
 custom_ylab <- if (length(ylab_arg) > 0L) {
   sub("^--ylab=", "", ylab_arg[[1L]])
@@ -414,7 +414,10 @@ pair_plot <- ggplot() +
     size = anno_size
   ) +
   facet_grid(rows = vars(sample_size_label), cols = vars(pair_label), scales = "free_x") +
-  scale_y_discrete(limits = c("other", "same-other", "same")) +
+  scale_y_discrete(
+    limits = c("other", "same-other", "same"),
+    expand = expansion(add = c(0.15, 0.6))
+  ) +
   scale_x_continuous(expand = expansion(mult = c(x_expand_left, x_expand_right))) +
   labs(
     x = x_axis_label,
