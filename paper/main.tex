@@ -229,7 +229,9 @@ Waveform & test(500) / train(300) & 800 & 21 & 1.67 & Waveform class & Classific
 Table~\ref{tab:scenario-interpretation} summarizes the qualitative interpretation of Same against Other before downsampling.
 When the larger source also performs better, the result is ambiguous under unequal training sizes, which is precisely the setting where SOKED is needed.
 When the smaller source already performs better, that is immediate evidence of a subset effect.
-\section{Datasets and experimental setup}
+\section{Experiments and Results}
+\label{sec:experiments-results}
+\subsection{Experimental setup}
 \label{sec:datasets}
 
 We evaluate SOKED on two simulated and six real datasets that span regression and classification, low and high-dimensional features, and natural subset structures defined by geography, time, treatment, demography, and benchmark splits.
@@ -237,54 +239,7 @@ Table~\ref{tab:dataset-summary} summarizes their key properties.
 All experiments use 10-fold cross-validation and report classification error rate or RMSE (lower is better).
 
 \textbf{Proposed benchmark file format.}
-We publish each data set as a CSV file rows for data observations and named columns ordered as follows: first column named \texttt{fold} contains a randomly assigned integer fold ID, second column named \texttt{subset} contains a string describing the subset, third column named \texttt{y} contains output to predict, and other columns are inputs for prediction.
-
-
-\textbf{Simulated datasets.}
-The simulations were chosen to illustrate cases in which there is clearly either a sample size effect (\texttt{iid\_easy}), or a subset effect (\texttt{different}), using the rpart learner.
-Both data sets involve one feature $x\sim U[-3\pi,3\pi]$ (uniform distribution), with $y=\sin(x)+\epsilon$, and $\epsilon\sim N(0, \sigma^2)$.
-In \texttt{iid\_easy} data, both large (N=80) and small (N=40) subsets are i.i.d. with $\sigma=0.1$, so any full-data gap should disappear after size-matching (sample size effect, Lemma~\ref{lem:exchangeability}).
-In \texttt{different}, the large subset (N=400) has less noise ($\sigma=0.1$) than the small subset ($\sigma=1.7$), so a Same--Other gap reflects a genuine subset effect (test error difference should stay after size matching).
-% Both are used to assess seed robustness with 100 independent downsampling seeds and to verify that SOKED recovers the expected distinction between true subset differences and pure size imbalance.
-
-\textbf{Traffic (regression).}
-The traffic dataset contains gapfilled \citep{Gurney2025Vulcan} road-segment observations from Phoenix and Baltimore originating from the Highway Performance Monitoring System \citep{FHWA2016HPMSShapefile}, which serve as the two SOAKED subsets.
-Each row represents one road segment, the prediction target is log-transformed Average Annual Daily Traffic (AADT) \citep{bilal_hpms_aadt}, and the feature set combines night-time lights \citep{bilal_ntl_viirs}, population \citep{bilal_worldpop}, road density \citep{bilal_osm_roads}, and Sentinel-2 \citep{bilal_sentinel2} satellite bands (7 features, 128,792 rows).
-The Sentinel-2 bands are RGB and NIR (red, green, blue, and near-infrared).
-This setting asks whether training on data from the same city is more predictive than training on the other city or on both cities pooled together.
-We also use this dataset to assess learner robustness, comparing featureless, \texttt{rpart}, \texttt{glmnet}, and a torch-based MLP over 5-fold CV.
-
-\textbf{qSIP (regression).}
-The qSIP dataset comes from quantitative stable isotope probing experiments \citep{hungate2015quantitative},
-%in microbial biogeochemistry
-performed in various sites and time periods.
-In each experiment there are relatively few data (~1000s), so the goal of analysis is to determine whether data sets are consistent enough to be combined and analyzed together.
-Controls were combined from two experiments (DIM and QME), yielding data with two subsets: \texttt{dim.control} (3,120 observations) and \texttt{qme.15} (4,590 observations).
-Each row is an observation characterized by 8,380 KEGG ortholog indicators, and the prediction target is \texttt{growth\_per\_day}.
-If our goal is to predict growth rate for \texttt{qme.15}, we would like to know whether training on \texttt{qme.15} is more accurate than training on \texttt{dim.control} because QME has more examples, or because the two experiments have different learnable growth patterns.
-
-\textbf{Workers' compensation (regression).}
-The workers' compensation dataset is a benchmark of 100,000 synthetically generated insurance claims \citep{Ali2020}.
-Each row represents one claim, the prediction target is log-transformed UltimateIncurredClaimCost, and claimant gender defines the two SOKED subsets: 77,020 male and 22,980 female instances.
-If our goal is to have good predictions for females, we would like to know if training on males is more accurate because of the increased sample size.
-
-\textbf{NSCH autism (classification).}
-The National Survey of Children's Health (NSCH) is a nationally representative annual survey conducted by the U.S.\ Census Bureau \citep{NSCH2019,NSCH2020}.
-We use survey years 2019 and 2020 as the two SOAKED subsets (18,202 and 27,808 children, respectively).
-Each row represents one child ages 3-17 years, with survey responses provided by an adult familiar with the child's health, and the features encode questionnaire items on condition diagnoses, family income, insurance coverage, healthcare access, neighborhood conditions, and other health-related factors. 
-The target is a binary autism identification (was the child ever diagnosed with autism by a doctor/other healthcare provider) indicator. 
-If our goal is to have good predictions for 2020, we would like to know if training on 2020 is more accurate because of the increased sample size, or because it is somehow different from 2019.
-
-\textbf{STL-10 (classification).}
-STL-10 is a benchmark image classification dataset \citep{coates2011stl10} with 13,000 images, each with 96x96 pixels in 3 color channels (27,648 features), across 10 object classes.
-Each row is one image, the target is object class, and the predefined train (5,000) and test (8,000) splits serve as the two SOKED subsets.
-If our goal is to have good predictions on a held-out set of images drawn from the test subset, we would like to know if learning using the other images from the test subset is as accurate as learning using images from the train subset.
-
-\textbf{Waveform (classification).}
-The UCI Waveform dataset \citep{breiman1984classification} contains 800 labeled examples (300 train, 500 test) across three classes described by 21 features after preprocessing.
-Each row is one waveform example, the target is waveform class, and the predefined train/test split defines the two SOKED subsets.
-Our goal is to determine whether or not data have a consistent pattern across the predefined train/test split. 
-% Therefore, if we want to have good predictions on a held-out set of images drawn from the train subset, we would like to know if learning using the other images from the train subset is as accurate as learning using images from the test subset.
+We publish each data set as a CSV file with rows for data observations and named columns ordered as follows: first column named \texttt{fold} contains a randomly assigned integer fold ID, second column named \texttt{subset} contains a string describing the subset, third column named \texttt{y} contains output to predict, and other columns are inputs for prediction.
 
 % \paragraph{Data availability and licensing.}
 % All datasets used in this paper are publicly available.
@@ -325,8 +280,6 @@ Our goal is to determine whether or not data have a consistent pattern across th
 \end{tabular}
 \end{table}
 
-\section{Results}
-
 The primary diagnostic comparison in SOKED is Same against Other: it directly tests whether subset identity matters after controlling for training size.
 For datasets with multiple test subsets, we display the subset that best illustrates the Same--Other contrast; all test subsets are covered in Table~\ref{tab:results-summary}.
 Figure~\ref{fig:learner-panels} reports mean $\pm$ SD (standard deviation across CV folds, emphasizing precision of the learner comparison); Figures~\ref{fig:regr-pairs} and \ref{fig:classif-pairs} report mean $\pm$ SD (standard deviation across folds, showing spread of fold-level errors).
@@ -336,6 +289,12 @@ Classification experiments use \texttt{glmnet}, which is well suited to the mode
 Figure~\ref{fig:sim-combined} shows that SOKED conclusions are stable across 100 seeds on simulated data, supporting this choice when compute is limited.
 
 \subsection{Simulated regression data sets}
+The simulations were chosen to illustrate cases in which there is clearly either a sample size effect (\texttt{iid\_easy}), or a subset effect (\texttt{different}), using the \texttt{rpart} learner.
+Both data sets involve one feature $x\sim U[-3\pi,3\pi]$ (uniform distribution), with $y=\sin(x)+\epsilon$, and $\epsilon\sim N(0, \sigma^2)$.
+In \texttt{iid\_easy} data, both large (N=80) and small (N=40) subsets are i.i.d. with $\sigma=0.1$, so any full-data gap should disappear after size-matching (sample size effect, Lemma~\ref{lem:exchangeability}).
+In \texttt{different}, the large subset (N=400) has less noise ($\sigma=0.1$) than the small subset ($\sigma=1.7$), so a Same--Other gap reflects a genuine subset effect (test error difference should stay after size matching).
+% Both are used to assess seed robustness with 100 independent downsampling seeds and to verify that SOKED recovers the expected distinction between true subset differences and pure size imbalance.
+
 To assess whether the SOKED conclusion is stable across random downsampling seeds, we repeated the matched-size comparison with 100 independent random seeds and examined the distribution of paired $t$-test $p$-values across seeds.
 Figure~\ref{fig:sim-combined} shows the results.
 The blue vertical line gives the $p$-value using the full (unequal) training sets; the red boxplots summarize the distribution of $p$-values across the 100 downsampling seeds.
@@ -354,6 +313,13 @@ The robustness of these conclusions across 100 seeds supports the practical use 
 
 \subsection{Real regression data sets}
 We next consider the three real regression examples, beginning with the traffic data because it motivates the learner choice used in the remaining regression experiments.
+
+\paragraph{Traffic.}
+The traffic dataset contains gapfilled \citep{Gurney2025Vulcan} road-segment observations from Phoenix and Baltimore originating from the Highway Performance Monitoring System \citep{FHWA2016HPMSShapefile}, which serve as the two SOKED subsets.
+Each row represents one road segment, the prediction target is log-transformed Average Annual Daily Traffic (AADT) \citep{bilal_hpms_aadt}, and the feature set combines night-time lights \citep{bilal_ntl_viirs}, population \citep{bilal_worldpop}, road density \citep{bilal_osm_roads}, and Sentinel-2 \citep{bilal_sentinel2} satellite bands (7 features, 128,792 rows).
+The Sentinel-2 bands are RGB and NIR (red, green, blue, and near-infrared).
+This setting asks whether training on data from the same city is more predictive than training on the other city or on both cities pooled together.
+We also use this dataset to assess learner robustness, comparing featureless, \texttt{rpart}, \texttt{glmnet}, and a torch-based MLP over 5-fold CV.
 
 On the traffic data, we assessed whether the SOKED conclusion depends strongly on the prediction algorithm by comparing featureless, regression tree (\texttt{rpart}), elastic net (\texttt{glmnet}), and a torch-based multi-layer perceptron (MLP).
 These learners span increasing model flexibility: the featureless learner predicts the training-set mean and serves as a no-signal baseline in \texttt{mlr3} \citep{Bischl2024}; \texttt{rpart} implements CART-style regression trees \citep{Breiman1984}; \texttt{glmnet} fits a cross-validated elastic-net generalized linear model \citep{Friedman2010glmnet}; and the MLP is a nonlinear neural network implemented with the R \texttt{torch} package \citep{rtorch}.
@@ -375,9 +341,23 @@ With the full Phoenix-size Same training set ($N=88{,}331$), the strongest RMSE 
 % Featureless, \texttt{rpart}, and \texttt{glmnet} train in approximately 0.002, 0.12, and 0.44 seconds per run, respectively, whereas the tuned torch MLP requires about 32.2 seconds.
 % Because the main SOKED diagnosis is stable across these learner families, we use \texttt{rpart} in the remaining experiments as a simple nonlinear default that is much cheaper than the neural network, substantially cheaper than \texttt{glmnet}, and still captures the same subset-dependent structure.
 
+\paragraph{qSIP.}
+The qSIP dataset comes from quantitative stable isotope probing experiments \citep{hungate2015quantitative},
+%in microbial biogeochemistry
+performed in various sites and time periods.
+In each experiment there are relatively few data (~1000s), so the goal of analysis is to determine whether data sets are consistent enough to be combined and analyzed together.
+Controls were combined from two experiments (DIM and QME), yielding data with two subsets: \texttt{dim.control} (3,120 observations) and \texttt{qme.15} (4,590 observations).
+Each row is an observation characterized by 8,380 KEGG ortholog indicators, and the prediction target is \texttt{growth\_per\_day}.
+If our goal is to predict growth rate for \texttt{qme.15}, we would like to know whether training on \texttt{qme.15} is more accurate than training on \texttt{dim.control} because QME has more examples, or because the two experiments have different learnable growth patterns.
+
 For qSIP, Figure~\ref{fig:regr-pairs} (middle column) shows SOKED results for the \texttt{qme.15} test subset.
 At full training sizes, Same ($N=4{,}131$, RMSE $=0.0377$) outperforms Other ($N=2{,}808$, RMSE $=0.0564$), so the naive comparison could be attributed to Same having more training examples.
 After downsampling Same to $n_0 = 2{,}808$, the gap persists (Same $0.0381$ vs.\ Other $0.0564$, $p < 0.0001$), confirming a strong residual subset effect.
+
+\paragraph{Workers' compensation.}
+The workers' compensation dataset is a benchmark of 100,000 synthetically generated insurance claims \citep{Ali2020}.
+Each row represents one claim, the prediction target is log-transformed UltimateIncurredClaimCost, and claimant gender defines the two SOKED subsets: 77,020 male and 22,980 female instances.
+If our goal is to have good predictions for females, we would like to know if training on males is more accurate because of the increased sample size.
 
 For workers' compensation, Figure~\ref{fig:regr-pairs} (right column) shows the Female test subset.
 At full training sizes, Other ($N=69{,}454$) outperforms Same ($N=20{,}545$) in RMSE ($1.741$ vs.\ $1.753$, $p < 0.0001$).
@@ -396,6 +376,13 @@ This is the sample-size pattern SOKED is designed to reveal: most of the apparen
 \subsection{Real classification data sets}
 We then turn to the three real classification examples, which all use the same \texttt{glmnet} baseline but differ in whether the apparent advantage of Same or Other survives size matching.
 
+\paragraph{NSCH autism.}
+The National Survey of Children's Health (NSCH) is a nationally representative annual survey conducted by the U.S.\ Census Bureau \citep{NSCH2019,NSCH2020}.
+We use survey years 2019 and 2020 as the two SOKED subsets (18,202 and 27,808 children, respectively).
+Each row represents one child ages 3-17 years, with survey responses provided by an adult familiar with the child's health, and the features encode questionnaire items on condition diagnoses, family income, insurance coverage, healthcare access, neighborhood conditions, and other health-related factors. 
+The target is a binary autism identification (was the child ever diagnosed with autism by a doctor/other healthcare provider) indicator. 
+If our goal is to have good predictions for 2020, we would like to know if training on 2020 is more accurate because of the increased sample size, or because it is somehow different from 2019.
+
 For NSCH autism, Figure~\ref{fig:classif-pairs} (left column) shows SOKED results for the 2020 test subset.
 The full-data comparison favors Same ($N=25{,}027$, error $= 0.0241$) over Other ($N=16{,}381$, error $= 0.0256$), and the gap is significant ($p = 0.0035$).
 After downsampling to $n_0 = 16{,}381$, the gap narrows but does not disappear: Same still has lower error than Other ($0.0246$ vs.\ $0.0256$), and the matched-size gap remains significant ($p = 0.0126$).
@@ -403,11 +390,22 @@ This indicates a modest residual year-specific subset effect in addition to the 
 For the 2019 test subset (not shown), the pattern is different: Other is better at full size because it has more data, but the matched-size gap is non-significant ($p > 0.8$), which is consistent with a sample-size effect.
 Taken together, NSCH shows both regimes across years: 2020 retains a small residual subset effect, whereas 2019 is largely explained by unequal sample sizes.
 
+\paragraph{STL-10.}
+STL-10 is a benchmark image classification dataset \citep{coates2011stl10} with 13,000 images, each with 96x96 pixels in 3 color channels (27,648 features), across 10 object classes.
+Each row is one image, the target is object class, and the predefined train (5,000) and test (8,000) splits serve as the two SOKED subsets.
+If our goal is to have good predictions on a held-out set of images drawn from the test subset, we would like to know if learning using the other images from the test subset is as accurate as learning using images from the train subset.
+
 For STL-10, Figure~\ref{fig:classif-pairs} (middle column) shows SOKED results for the test-split target.
 At full training sizes, Same ($N=7{,}200$, error $= 0.627$) outperforms Other ($N=4{,}500$, error $= 0.644$), and the gap is significant ($p = 0.0009$).
 After downsampling to $n_0 = 4{,}500$, the gap narrows and becomes non-significant ($p = 0.193$), consistent with a sample-size effect.
 When the training split is the target (not shown), Other is better at full size, but the matched-size gap is also non-significant ($p = 0.693$), again consistent with a sample-size effect rather than a strong residual subset difference.
 In the current STL-10 runs, both target splits therefore behave primarily as sample-size examples.
+
+\paragraph{Waveform.}
+The UCI Waveform dataset \citep{breiman1984classification} contains 800 labeled examples (300 train, 500 test) across three classes described by 21 features after preprocessing.
+Each row is one waveform example, the target is waveform class, and the predefined train/test split defines the two SOKED subsets.
+Our goal is to determine whether or not data have a consistent pattern across the predefined train/test split. 
+% Therefore, if we want to have good predictions on a held-out set of images drawn from the train subset, we would like to know if learning using the other images from the train subset is as accurate as learning using images from the test subset.
 
 For Waveform, Figure~\ref{fig:classif-pairs} (right column) shows SOKED results for the train-split target.
 At full training sizes, Other ($N=450$, error $= 0.160$) outperforms Same ($N=270$, error $= 0.203$), with a modest but significant gap ($p = 0.046$).
