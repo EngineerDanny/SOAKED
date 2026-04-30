@@ -429,6 +429,7 @@ Taken together, Waveform behaves primarily as a sample-size example, and in the 
 Table~\ref{tab:results-summary} consolidates the per-dataset findings into a single view that reports which source performs better before and after matching, along with which source is larger.
 The scenario code is intentionally simple: O means Other is larger and also wins before matching, S means Same is larger and also wins before matching, and D means the smaller source already wins before matching.
 The matched column is reported relative to the Larger column: \emph{larger} means the larger source still wins after matching, \emph{smaller} means the smaller source wins after matching, \emph{equal} means no matched-size winner, and \emph{n/a} means matching is not needed for interpretation.
+For interpreted matched rows, the second line reports the paired $t$-test $p$-value for the matched-size Same--Other gap.
 Of the 16 dataset/test-subset rows, 8 yield a residual subset effect that survives downsampling and 8 collapse to a sample-size effect, illustrating that both regimes occur in practice rather than one dominating.
 The O and S rows are the ones SOKED actively resolves: they are exactly the cases where the larger source could be winning either because it is larger or because it is genuinely more predictive.
 The D rows are already informative before downsampling because the smaller source wins outright, so matched-size downsampling is not needed for interpretation; those rows are therefore marked n/a in the matched column.
@@ -442,24 +443,24 @@ The D rows are already informative before downsampling because the smaller sourc
 \toprule
 Data &  Test subset & Algorithm & Better & Larger & Scenario & Better (matched) & Conclusion \\
 \midrule
-iid\_easy & small & rpart & other & other & O & equal & sample size \\
+iid\_easy & small & rpart & other & other & O & \shortstack{equal\\($p=0.0992$)} & sample size \\
 iid\_easy & large & rpart & other & same & D & n/a & sample size  \\
 different & small & rpart & same & other & D & n/a & subset \\
-different & large & rpart & same & same & S & larger & subset  \\
+different & large & rpart & same & same & S & \shortstack{larger\\($p=0.0009$)} & subset  \\
 \midrule
-qSIP & qme.15 & rpart & same & same & S & larger & subset \\
+qSIP & qme.15 & rpart & same & same & S & \shortstack{larger\\($p<0.0001$)} & subset \\
 qSIP & dim.control & rpart & same & other & D & n/a & subset \\
-workers' comp & Male & rpart & same & same & S & larger & subset \\
-workers' comp & Female & rpart & other & other & O & equal & sample size \\
-traffic & Phoenix & rpart & same & same & S & larger & subset \\
+workers' comp & Male & rpart & same & same & S & \shortstack{larger\\($p<0.0001$)} & subset \\
+workers' comp & Female & rpart & other & other & O & \shortstack{equal\\($p=0.1174$)} & sample size \\
+traffic & Phoenix & rpart & same & same & S & \shortstack{larger\\($p<0.0001$)} & subset \\
 traffic & Baltimore & rpart & same & other & D & n/a & subset \\
 \midrule
-NSCH\_autism & 2019 & glmnet & other & other & O & equal & sample size \\
-NSCH\_autism & 2020 & glmnet & same & same & S & larger & subset \\
-STL-10 & test & glmnet & same & same & S & equal & sample size \\
-STL-10 & train & glmnet & other & other & O & equal & sample size \\
-Waveform & test & glmnet & same & same & S & equal & sample size \\
-Waveform & train & glmnet & other & other & O & equal & sample size \\
+NSCH\_autism & 2019 & glmnet & other & other & O & \shortstack{equal\\($p=0.8168$)} & sample size \\
+NSCH\_autism & 2020 & glmnet & same & same & S & \shortstack{larger\\($p=0.0126$)} & subset \\
+STL-10 & test & glmnet & same & same & S & \shortstack{equal\\($p=0.1927$)} & sample size \\
+STL-10 & train & glmnet & other & other & O & \shortstack{equal\\($p=0.6931$)} & sample size \\
+Waveform & test & glmnet & same & same & S & \shortstack{equal\\($p=0.8542$)} & sample size \\
+Waveform & train & glmnet & other & other & O & \shortstack{equal\\($p=0.5325$)} & sample size \\
 \bottomrule
 \end{tabular}}
     \caption{SOKED results across all datasets.
