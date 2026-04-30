@@ -115,7 +115,7 @@ SOKED separates these two causes: a sample-size finding calls for targeted data 
     % https://github.com/tdhock/cv-same-other-paper/blob/main/slides/drawing-SOKED-generic.svg
     \caption{
     Proposed SOKED evaluation framework, for test fold=3 and test subset=B, in data with two subsets of different sizes: A has three rows and B has four rows.
-    After excluding data based on fold and subset, random downsampling is used for Same and All models, to obtain train sets of size equal to the smallest train set (Other, 2 rows).}
+    After excluding data based on fold and subset, random downsampling is used to obtain train sets of size equal to the smaller train set (Other, 2 rows).}
     \label{fig:SOKED-concept}
 \end{figure}
 
@@ -123,7 +123,7 @@ SOKED separates these two causes: a sample-size finding calls for targeted data 
 \label{sec:workflow}
 The goal of the proposed SOKED method is to determine if data subsets are similar enough for optimal learning and prediction.
 % We fix a test fold and a target subset, then compare predictors trained on either the Same subset, or the Other subset.
-% SOKED retains both the original full-data training sets and matched-size versions obtained by random downsampling to the smallest feasible training set, so the full-data gap and the size-controlled gap can be compared.
+% SOKED retains both the original full-data training sets and matched-size versions obtained by random downsampling to the smaller feasible training set, so the full-data gap and the size-controlled gap can be compared.
 % For one target subset, SOKED proceeds as follows.
 \begin{enumerate}
     \item \textbf{Fix the test subset.} Choose the target subset whose test performance will be evaluated.
@@ -205,23 +205,23 @@ This procedure is implemented in \texttt{mlr3resampling::pvalue\_downsample()}.
 \begin{table*}[t]
 \centering
 \scriptsize
-\setlength{\tabcolsep}{3pt}
+\setlength{\tabcolsep}{2pt}
 \caption{Summary of data sets used in the experiments. Note: Imb.\ = imbalance ratio between subsets (1 = balanced; larger values indicate more imbalance).}
 \label{tab:dataset-summary}
-\begin{tabular}{p{0.20\linewidth}p{0.14\linewidth}rrrp{0.22\linewidth}l}
+\begin{tabular}{p{0.13\linewidth}p{0.30\linewidth}rrrp{0.16\linewidth}l}
 \toprule
 \textbf{Dataset} & \textbf{Subset levels} & \textbf{Rows} & \textbf{Feature(s)} & \textbf{Subset imb.} & \textbf{Target} & \textbf{Task} \\
 \midrule
-Different & large/small & 600 & 1 & 2.00 & y & Regression \\
-IID easy & large/small & 120 & 1 & 2.00 & y & Regression \\
+Different & large(N=400) / small(N=200) & 600 & 1 & 2.00 & y & Regression \\
+IID easy & large(N=80) / small(N=40) & 120 & 1 & 2.00 & y & Regression \\
 \midrule
-qSIP & dim.control/qme.15 & 7,710 & 8,380 & 1.47 & growth\_per\_day & Regression \\
-Traffic & Phoenix/Baltimore & 128,792 & 7 & 6.01 & log(AADT) & Regression \\
-Workers' compensation & Male/Female & 100,000 & 8 & 3.38 & log(Incurred\_claim\_cost) & Regression \\
+qSIP & dim.control(N=3,120) / qme.15(N=4,590) & 7,710 & 8,380 & 1.47 & growth\_per\_day & Regression \\
+Traffic & Phoenix(N=110,414) / Baltimore(N=18,378) & 128,792 & 7 & 6.01 & log(AADT) & Regression \\
+Workers' comp & Male(N=77,172) / Female(N=22,828) & 100,000 & 8 & 3.38 & log(claim cost) & Regression \\
 \midrule
-NSCH autism & 2019/2020 & 46,010 & 362 & 1.53 & Autism diagnosis & Classification \\
-STL-10 & test/train & 13,000 & 27,648 & 1.60 & Image class & Classification \\
-Waveform & test/train & 800 & 21 & 1.67 & Waveform class & Classification \\
+NSCH autism & 2019(N=18,202) / 2020(N=27,808) & 46,010 & 362 & 1.53 & Autism diagnosis & Classification \\
+STL-10 & test(N=8,000) / train(N=5,000) & 13,000 & 27,648 & 1.60 & Image class & Classification \\
+Waveform & test(N=500) / train(N=300) & 800 & 21 & 1.67 & Waveform class & Classification \\
 \bottomrule
 \end{tabular}
 \end{table*}
@@ -252,7 +252,7 @@ The traffic dataset contains gapfilled \citep{Gurney2025Vulcan} road-segment obs
 Each row represents one road segment, the prediction target is log-transformed Average Annual Daily Traffic (AADT) \citep{bilal_hpms_aadt}, and the feature set combines night-time lights \citep{bilal_ntl_viirs}, population \citep{bilal_worldpop}, road density \citep{bilal_osm_roads}, and Sentinel-2 \citep{bilal_sentinel2} satellite bands (7 features, 128,792 rows).
 The Sentinel-2 bands are RGB and NIR (red, green, blue, and near-infrared).
 This setting asks whether training on data from the same city is more predictive than training on the other city or on both cities pooled together.
-We also use this dataset to assess learner robustness, comparing featureless, \texttt{rpart}, \texttt{cv\_glmnet}, and a torch-based MLP over 5-fold CV.
+We also use this dataset to assess learner robustness, comparing featureless, \texttt{rpart}, \texttt{glmnet}, and a torch-based MLP over 5-fold CV.
 
 \textbf{qSIP (regression).}
 The qSIP dataset comes from quantitative stable isotope probing experiments \citep{hungate2015quantitative},
@@ -332,7 +332,7 @@ For datasets with multiple test subsets, we display the subset that best illustr
 Figure~\ref{fig:learner-panels} reports mean $\pm$ SD (standard deviation across CV folds, emphasizing precision of the learner comparison); Figures~\ref{fig:regr-pairs} and \ref{fig:classif-pairs} report mean $\pm$ SD (standard deviation across folds, showing spread of fold-level errors).
 Real-data experiments use $R=1$ downsampling seed.
 Regression experiments use \texttt{rpart}, motivated by the traffic learner-robustness analysis below, which shows the Same-beats-Other conclusion is stable across learner families on the traffic data.
-Classification experiments use \texttt{cv\_glmnet}, which is well suited to the moderate- and high-dimensional feature spaces in NSCH (362 features), STL-10 (27,648 CNN features), and Waveform (21 features), and provides a strong linear baseline for these classification tasks.
+Classification experiments use \texttt{glmnet}, which is well suited to the moderate- and high-dimensional feature spaces in NSCH (362 features), STL-10 (27,648 CNN features), and Waveform (21 features), and provides a strong linear baseline for these classification tasks.
 Figure~\ref{fig:sim-combined} shows that SOKED conclusions are stable across 100 seeds on simulated data, supporting this choice when compute is limited.
 
 \subsection{Simulated regression data sets}
@@ -355,8 +355,9 @@ The robustness of these conclusions across 100 seeds supports the practical use 
 \subsection{Real regression data sets}
 We next consider the three real regression examples, beginning with the traffic data because it motivates the learner choice used in the remaining regression experiments.
 
-On the traffic data, we assessed whether the SOKED conclusion depends strongly on the prediction algorithm by comparing featureless, regression tree (\texttt{rpart}), elastic net (\texttt{cv\_glmnet}), and a torch-based multi-layer perceptron.
-Figure~\ref{fig:learner-panels} focuses on the Phoenix test subset and reports test RMSE (mean $\pm$ SE across 5 CV splits) for the Same and Other train-subset configurations, both with the full available training sets and after matching all train sizes to the smallest feasible size.
+On the traffic data, we assessed whether the SOKED conclusion depends strongly on the prediction algorithm by comparing featureless, regression tree (\texttt{rpart}), elastic net (\texttt{glmnet}), and a torch-based multi-layer perceptron (MLP).
+These learners span increasing model flexibility: the featureless learner predicts the training-set mean and serves as a no-signal baseline in \texttt{mlr3} \citep{Bischl2024}; \texttt{rpart} implements CART-style regression trees \citep{Breiman1984}; \texttt{glmnet} fits a cross-validated elastic-net generalized linear model \citep{Friedman2010glmnet}; and the MLP is a nonlinear neural network implemented with the R \texttt{torch} package \citep{rtorch}.
+Figure~\ref{fig:learner-panels} focuses on the Phoenix test subset and reports test RMSE (mean $\pm$ SD across 5 CV splits) for the Same and Other train-subset configurations, both with the full available training sets and after matching both train sizes to the smaller feasible size.
 
 \begin{figure}
     \centering
@@ -393,7 +394,7 @@ This is the sample-size pattern SOKED is designed to reveal: most of the apparen
 \end{figure}
 
 \subsection{Real classification data sets}
-We then turn to the three real classification examples, which all use the same \texttt{cv\_glmnet} baseline but differ in whether the apparent advantage of Same or Other survives size matching.
+We then turn to the three real classification examples, which all use the same \texttt{glmnet} baseline but differ in whether the apparent advantage of Same or Other survives size matching.
 
 For NSCH autism, Figure~\ref{fig:classif-pairs} (left column) shows SOKED results for the 2020 test subset.
 The full-data comparison favors Same ($N=25{,}027$, error $= 0.0241$) over Other ($N=16{,}381$, error $= 0.0256$), and the gap is significant ($p = 0.0035$).

@@ -16,8 +16,8 @@ add_sample_size_labels <- function(dt) {
   dt <- merge(dt, smallest_dt, by = "test_subset")
   dt <- merge(dt, full_dt, by = c("test_subset", "train_subsets"))
   rbindlist(list(
-    dt[n_train_groups == smallest_n][, sample_size := "Matched smallest size"],
-    dt[n_train_groups == full_n][, sample_size := "Full train sets"]
+    dt[n_train_groups == smallest_n][, sample_size := "sample size: matched"],
+    dt[n_train_groups == full_n][, sample_size := "sample size: full"]
   ), use.names = TRUE)
 }
 
@@ -41,7 +41,7 @@ learner_labels <- c(
   featureless = "featureless",
   rpart = "rpart",
   glmnet = "glmnet",
-  torch_mlp = "deep neural network"
+  torch_mlp = "MLP"
 )
 plot_dt[, learner := factor(learner, levels = names(learner_labels), labels = unname(learner_labels))]
 raw_dt[, learner := factor(learner, levels = names(learner_labels), labels = unname(learner_labels))]
@@ -59,11 +59,11 @@ raw_dt[, test_subset := factor(
 )]
 plot_dt[, sample_size := factor(
   sample_size,
-  levels = c("Full train sets", "Matched smallest size")
+  levels = c("sample size: full", "sample size: matched")
 )]
 raw_dt[, sample_size := factor(
   sample_size,
-  levels = c("Full train sets", "Matched smallest size")
+  levels = c("sample size: full", "sample size: matched")
 )]
 plot_dt[, text_label := sprintf("%.3f±%.3f", metric_mean, metric_sd)]
 plot_dt[, text_hjust := ifelse(
@@ -78,7 +78,7 @@ panel_dt[, test_subset := factor(
 )]
 panel_dt[, sample_size := factor(
   sample_size,
-  levels = c("Full train sets", "Matched smallest size")
+  levels = c("sample size: full", "sample size: matched")
 )]
 panel_dt[, n_label := ifelse(
   same == other,
@@ -100,7 +100,7 @@ range_dt[, panel_upper := panel_max + 0.10 * panel_range * text_size_ratio]
 
 panel_dt <- merge(panel_dt, range_dt, by = "sample_size")
 panel_dt[, n_label_y := ifelse(
-  sample_size == "Matched smallest size",
+  sample_size == "sample size: matched",
   0.91,
   0.86
 )]

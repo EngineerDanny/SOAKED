@@ -260,13 +260,13 @@ if (use_sample_prefix) {
   plot_dt[, sample_size_label := ifelse(
     sample_size == "full",
     "sample\nsize:\nfull",
-    "sample\nsize:\nsmallest"
+    "sample\nsize:\nmatched"
   )]
 } else {
   plot_dt[, sample_size_label := ifelse(
     sample_size == "full",
     "sample\nsize:\nfull",
-    "sample\nsize:\nsmallest"
+    "sample\nsize:\nmatched"
   )]
 }
 plot_dt[, sample_size_label := factor(

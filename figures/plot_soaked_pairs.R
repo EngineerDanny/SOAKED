@@ -299,7 +299,8 @@ if (is.null(custom_xlab) && length(metric_labels) != 1L) {
   )
 }
 x_axis_label <- if (is.null(custom_xlab)) metric_labels[[1L]] else custom_xlab
-x_axis_label <- sub("(", sprintf("(%s, ", output_tag), x_axis_label, fixed = TRUE)
+display_tag <- if (output_tag %in% c("cv.glmnet", "cv_glmnet")) "glmnet" else output_tag
+x_axis_label <- sub("(", sprintf("(%s, ", display_tag), x_axis_label, fixed = TRUE)
 
 plot_dt[, pair_label := factor(
   pair_label,
@@ -313,13 +314,13 @@ if (use_sample_prefix) {
   plot_dt[, sample_size_label := ifelse(
     sample_size == "full",
     "sample\nsize:\nfull",
-    "sample\nsize:\nsmallest"
+    "sample\nsize:\nmatched"
   )]
 } else {
   plot_dt[, sample_size_label := ifelse(
     sample_size == "full",
     "sample\nsize:\nfull",
-    "sample\nsize:\nsmallest"
+    "sample\nsize:\nmatched"
   )]
 }
 plot_dt[, sample_size_label := factor(

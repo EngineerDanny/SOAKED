@@ -353,7 +353,7 @@ Both are used to assess seed robustness with 100 independent downsampling seeds.
 \paragraph{Traffic (regression).}
 Road-segment data from Phoenix and Baltimore with log-transformed Average Annual Daily Traffic (AADT) as the prediction target.
 The feature set combines night-time lights, population, road density, and Sentinel-2 satellite bands (7 features, 128,792 rows).
-We use this dataset to assess learner robustness, comparing featureless, \texttt{rpart}, \texttt{cv\_glmnet}, and a torch-based MLP over 5-fold CV.
+We use this dataset to assess learner robustness, comparing featureless, \texttt{rpart}, \texttt{glmnet}, and a torch-based MLP over 5-fold CV.
 
 \paragraph{qSIP (regression).}
 Microbial biogeochemistry data from the MC site comparing two treatment subsets: \texttt{dim.control} (3,120 observations) and \texttt{qme.15} (4,590 observations).
@@ -366,20 +366,20 @@ Gender is used as the SOAKED subset: 77,020 male and 22,980 female instances.
 \paragraph{NSCH autism (classification).}
 The National Survey of Children's Health (NSCH), a nationally representative annual survey by the U.S.\ Census Bureau.
 We use survey years 2019 and 2020 as SOAKED subsets (18,202 and 27,808 children respectively), described by 365 features.
-The target is a binary autism diagnosis indicator ($\approx3\%$ positive rate); we use \texttt{cv\_glmnet} with 10 downsampling seeds.
+The target is a binary autism diagnosis indicator ($\approx3\%$ positive rate); we use \texttt{glmnet} with 10 downsampling seeds.
 
 \paragraph{STL-10 (classification).}
 A benchmark image classification dataset \citep{coates2011stl10} with 13,000 examples across 10 object classes, represented as 2,048-dimensional CNN feature vectors.
-The predefined train (5,000) and test (8,000) splits serve as SOAKED subsets; we use \texttt{cv\_glmnet}.
+The predefined train (5,000) and test (8,000) splits serve as SOAKED subsets; we use \texttt{glmnet}.
 
 \paragraph{Waveform (classification).}
 The UCI Waveform dataset \citep{breiman1984classification} with 800 labeled examples (300 train, 500 test) across three classes described by 22 features.
-The predefined splits serve as SOAKED subsets; we use \texttt{cv\_glmnet}.
+The predefined splits serve as SOAKED subsets; we use \texttt{glmnet}.
 
 \section{Results}
 
 \subsection{Learner robustness on the traffic data}
-To assess whether the SOAKED conclusion depends strongly on the prediction algorithm, we compared featureless, regression tree (\texttt{rpart}), elastic net (\texttt{cv\_glmnet}), and a torch-based multi-layer perceptron.
+To assess whether the SOAKED conclusion depends strongly on the prediction algorithm, we compared featureless, regression tree (\texttt{rpart}), elastic net (\texttt{glmnet}), and a torch-based multi-layer perceptron.
 Figure~\ref{fig:learner-panels} focuses on the Phoenix test subset and reports test RMSE (mean $\pm$ SE across 5 CV splits) for the Same and Other train-subset configurations, both with the full available training sets and after matching all train sizes to the smallest feasible size.
 
 \begin{figure}
@@ -444,7 +444,7 @@ Across both datasets, which split is the target determines the verdict --- SOAK 
 \begin{figure}
     \centering
     \includegraphics[width=\textwidth]{fig4-classif-pairs.png}
-    \caption{SOAKED results for three classification datasets (cv.glmnet learner, 10-fold CV).
+    \caption{SOAKED results for three classification datasets (glmnet learner, 10-fold CV).
     Each column corresponds to one dataset--test-subset pair: NSCH autism (test subset: 2020), STL-10 (test subset: test split), and Waveform (test subset: train split).
     The top row uses the full available training sizes; the bottom row matches all training configurations to the smallest feasible size ($n_0$).
     Each panel shows test classification error rate (mean $\pm$ SD) for Same and Other training subsets, with a horizontal line and $p$-value from the paired $t$-test of Section~\ref{sec:ttest} comparing the two configurations.
