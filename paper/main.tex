@@ -39,49 +39,55 @@
 \maketitle
 
 \begin{abstract}
-In many machine-learning applications, the data come in natural subsets defined by geography, time period, acquisition protocol, demographic group, etc.
-When model performance differs across subsets, the appropriate remedy depends on which cause is responsible: if the gap reflects unequal training-set sizes, more data collection is needed; if it reflects genuine distributional differences, domain adaptation or robustness methods are needed.
-Standard cross-validation and the SOAK framework \citep{hocking2026} do not separate these two causes.
-We propose SOKED (Same/Other K-fold cross-validation Extension: Downsampling), a framework that formally decomposes an observed performance gap into a \emph{sample-size component} and a \emph{residual subset component} by using matched-size downsampling to equalize training set sizes across the Same and Other configurations.
-The decomposition can reverse the apparent ordering of training configurations: in our experiment on the dataset "workers' compensation", the naive full-data comparison suggests Other training data is superior, while SOKED shows the gap is not significant once training-set size is controlled.
-We demonstrate the framework across diverse domains: simulated regression, traffic monitoring, insurance claims (workers' compensation), benchmark classification (STL-10, Waveform), survey data (NSCH autism), and microbial biogeochemistry (qSIP).
-Across these examples, some apparent subset advantages disappear after size matching (a sample-size effect; the fix is more data collection), while others persist (a true distributional difference; the fix is robustness or domain-adaptation methods).
-We implement SOKED in the \texttt{mlr3resampling} R package.
+In many machine learning applications, data come with subsets defined by geography, time period, acquisition protocol, demographic group, etc.
+% Previous methods for estimating generalization error 
+When model performance differs across subsets of different sizes, we would like to determine the cause (number of train data, or distributional difference between subsets).
+% If the gap reflects unequal training-set sizes, more data collection is needed; if it reflects genuine distributional differences, domain adaptation or robustness methods are needed.
+% Standard cross-validation and the SOAK framework \citep{hocking2026} do not separate these two causes.
+We propose SOKED (Same/Other K-fold cross-validation Extension: Downsampling), a new machine learning evaluation framework that formally decomposes an observed performance gap into a \emph{sample-size component} and a \emph{residual subset component} by using matched-size downsampling to equalize training set sizes.
+% The decomposition can reverse the apparent ordering of training configurations: in our experiment on the dataset "workers' compensation", the naive full-data comparison suggests Other training data is superior, while SOKED shows the gap is not significant once training-set size is controlled.
+After size matching, subset advantages either disappear (indicating a sample-size effect; subsets are compatible), or persist (indicating a true distributional difference between subsets), depending on the data set.
+% , so domain adaptation methods may be required for optimal learning and prediction).
+We show the advantages of the proposed SOKED framework relative to baselines, using simulations and real data sets from diverse domains: traffic monitoring, insurance claims, image classification, survey data, and microbial biogeochemistry.
+% We implement SOKED in the \texttt{mlr3resampling} R package.
 \end{abstract}
 
 
 \section{Introduction}
-In many real-world machine-learning problems, the data fall into natural subsets defined by time period, geographic region, collection protocol, demographic group, etc.
+In many real-world machine learning problems, the data fall into natural subsets defined by time period, geographic region, collection protocol, demographic group, etc.
 When model performance differs across these subsets, it is not obvious whether the difference comes from genuine heterogeneity in the data or from the simpler fact that some subsets contain more training examples than others.
 
-For example, consider a public health surveillance system that develops models using data from two consecutive years of data collection.
-Should we train using only the current year (same subset), using data from previous years (other subsets), or using all available data (all subsets)? 
-If the model trained on all years performs better than model trained on either current year or previous years separately, is this improvement due to combining complementary patterns from different years, or merely because we have more training examples? 
-If the gain comes solely from the sheer data volume, then the practical response is to collect more data from underrepresented years. 
-Conversely, if real distributional shifts exist between years, we might need distributional robustness techniques.
+For example, consider creating a public health monitoring system using data from the National Survey of Children’s Health \citep{NSCH2019}, which contains subsets for different years of data collection (18,202 survey responses in 2019 and 27,808 in 2020).
+In the previous SOAK evaluation framework \citep{hocking2026}, we fix a test subset (2020), then systematically compare models trained using data from either the same year (2020), or from the other year (2019). 
+If the model trained on the same year performs better than the model trained on the other year, is this improvement because there are more training examples (sample size effect), or because the other year has a different data distribution (subset effect) that makes learning and prediction more difficult?
+% If the gain comes solely from the sheer data volume, then the practical response is to combine years when training. 
+If real distributional shifts exist between years, then separate models can be trained for each year, or data can be combined using domain adaptation techniques \citep{CostaJussa2015}.
+However, the previous SOAK framework does not separate subset effects (distributional differences) from sample-size effects (performance gains due to more training data), so its conclusions can be misleading when subsets differ substantially in size.
 
-The SOAK framework \citep{hocking2026} addresses part of this challenge by systematically comparing models trained from Same and Other subset configurations.
-However, SOAK does not separate subset effects (distributional differences) from sample-size effects (performance gains due to more training data), so its conclusions can be misleading when subsets differ substantially in size.
+We propose SOKED (\textbf{S}ame/\textbf{O}ther/\textbf{A}ll \textbf{K}-fold cross-validation \textbf{E}xtension: \textbf{D}ownsampling), a new evaluation framework that formally decomposes an observed performance gap into a \emph{sample-size component} and a \emph{residual subset component}.
+By holding training set size fixed through matched downsampling, SOKED empirically estimates the cause of performance differences: either a sample-size effect (the ordinary benefit of more training data) or a subset effect (genuine differences in learnable patterns between subsets).
+% The decomposition changes the recommended action: a sample-size effect calls for collecting more data, while a residual subset effect calls for distributional robustness methods or domain adaptation.
 
-We propose SOKED (\textbf{S}ame/\textbf{O}ther/\textbf{A}ll \textbf{K}-fold cross-validation \textbf{E}xtension: \textbf{D}ownsampling), a framework that formally decomposes an observed performance gap into a \emph{sample-size component} and a \emph{residual subset component}.
-By holding training-set size fixed through matched downsampling, SOKED isolates two mechanisms: a sample-size effect (the ordinary benefit of more training data) and a subset effect (genuine differences in learnable patterns between subsets).
-The decomposition changes the recommended action: a sample-size effect calls for collecting more data, while a residual subset effect calls for distributional robustness methods or domain adaptation.
+% The decomposition can also reverse the apparent ordering of training configurations and expose a failure mode of naive full-data comparison.
+% In our experiment on the dataset "workers' compensation", the full-data comparison favors the Other model for female subset; after size-matching, SOKED shows the gap shrinks to non-significance ($p > 0.1$), revealing that the apparent advantage is largely explained by training-set size rather than a genuine distributional difference.
+% We demonstrate this and related phenomena across simulated regression, benchmark classification (STL-10, Waveform), epidemiological survey data (NSCH autism), and microbial biogeochemistry (qSIP).
 
-The decomposition can also reverse the apparent ordering of training configurations and expose a failure mode of naive full-data comparison.
-In our experiment on the dataset "workers' compensation", the full-data comparison favors the Other model for female subset; after size-matching, SOKED shows the gap shrinks to non-significance ($p > 0.1$), revealing that the apparent advantage is largely explained by training-set size rather than a genuine distributional difference.
-We demonstrate this and related phenomena across simulated regression, benchmark classification (STL-10, Waveform), epidemiological survey data (NSCH autism), and microbial biogeochemistry (qSIP).
+\textbf{Summary of contributions.}
+We present three contributions.
 
-\paragraph{Summary of contributions.}
-We make four contributions.
-\begin{enumerate}
-  \item \textbf{SOKED algorithm and software gap.} We propose SOKED, an algorithmic extension of SOAK that uses matched-size downsampling to distinguish sample-size effects from residual subset effects.
+\textbf{1. New SOKED evaluation framework and software gap.}
+  We propose SOKED, a new evaluation framework which uses downsampling to distinguish sample-size effects from residual subset effects.
   To our knowledge, no prior software implements this Same/Other diagnostic with matched-size comparisons, so SOKED fills a practical software gap for cross-validation over predefined subsets.
-  \item \textbf{Formal decomposition.} We introduce a decomposition of cross-validation performance gaps into a sample-size component and a residual subset component, grounded in matched-size downsampling.
+
+  
+\textbf{2. Mathematical analysis.}
+  We introduce a decomposition of cross-validation performance gaps into a sample-size component and a residual subset component, using matched-size downsampling.
   Lemma~\ref{lem:exchangeability} gives a sufficient condition under which the subset component is zero.
-  \item \textbf{Empirical demonstrations.} We show across simulated and real datasets, including demographic subsets relevant to fairness auditing, that the proposed SOKED algorithm separates apparent advantages caused by unequal training-set sizes from residual subset effects that persist after size matching.
-  \item \textbf{Benchmark file format.} We propose a simple standard file format for benchmarking Same/Other subset comparisons and release eight datasets in that format.
-  Each benchmark file makes the resampling split, subset label, target, and predictors explicit using \texttt{fold}, \texttt{subset}, \texttt{y}, and \texttt{x} columns.
-\end{enumerate}
+
+\textbf{3. Benchmark file format and empirical demonstrations.}
+  We propose a simple standard file format for benchmarking Same/Other subset comparisons and release eight datasets in that format.
+  % Each benchmark file makes the resampling splits, subsets, target, and predictors explicit using \texttt{fold}, \texttt{subset}, \texttt{y}, and \texttt{x} columns.
+  We use these data to highlight the novelty of the proposed SOKED algorithm, which separates apparent advantages caused by unequal training-set sizes from residual subset effects that persist after size matching.
 
 
 \section{Related work}
@@ -93,8 +99,9 @@ These mechanisms control how folds are formed; SOKED answers a different questio
 
 \textbf{Distribution shift and transfer learning.}
 Transfer learning and domain adaptation methods are prescriptive: given a distributional shift, they adapt a source model to a target domain \citep{pan2010transfer,Farahani2021}.
-SOKED is instead diagnostic: it asks whether same-subset or other-subset training data are more predictive for a fixed target subset, and decomposes any gap into a sample-size component and a residual subset component.
-\citet{hocking2026} introduced SOAK as a Same/Other/All cross-validation framework; SOKED focuses on the Same/Other contrast and extends it to the practically important case of unequal subset sizes.
+The proposed SOKED framework is instead diagnostic: it determines whether same-subset or other-subset training data are more predictive for a fixed target subset, and decomposes any gap into a sample-size component and a residual subset component.
+The previous SOAK framework includes a comparison with training on all subsets, but does not include downsampling, so is not able to determine the cause of performance differences when training on subsets of unequal sizes \citep{hocking2026}. 
+The proposed SOKED framework focuses on the Same/Other contrast and proposes a new downsampling method to handle the practically important case of unequal subset sizes.
 
 \textbf{Fairness auditing.}
 Demographic subgroups are often imbalanced in size, so an observed performance disparity may reflect either genuine distributional differences or simply less training data for the disadvantaged group \citep{savoldi2021gender,hall2024visogender}.
@@ -107,27 +114,32 @@ SOKED separates these two causes: a sample-size finding calls for targeted data 
     \includegraphics[width=1\linewidth]{fig1-concept.png}
     % https://github.com/tdhock/cv-same-other-paper/blob/main/slides/drawing-SOKED-generic.svg
     \caption{
-    SOKED algorithm for test fold=3 and test subset=B in data with two subsets of different sizes: A has three rows and B has four rows.
+    Proposed SOKED evaluation framework, for test fold=3 and test subset=B, in data with two subsets of different sizes: A has three rows and B has four rows.
     After excluding data based on fold and subset, random downsampling is used for Same and All models, to obtain train sets of size equal to the smallest train set (Other, 2 rows).}
     \label{fig:SOKED-concept}
 \end{figure}
 
-\subsection{SOKED workflow}
+\subsection{Proposed SOKED evaluation framework}
 \label{sec:workflow}
-Figure~\ref{fig:SOKED-concept} shows the SOKED construction for one outer cross-validation split and one target subset.
-As in SOAK, we fix a test fold and a target subset, then compare predictors trained on the Same subset, the Other subset, and All subsets combined.
-SOKED retains both the original full-data training sets and matched-size versions obtained by random downsampling to the smallest feasible training set, so the full-data gap and the size-controlled gap can be compared directly.
-For one target subset and one outer resampling split, SOKED proceeds as follows.
+The goal of the proposed SOKED method is to determine if data subsets are similar enough for optimal learning and prediction.
+% We fix a test fold and a target subset, then compare predictors trained on either the Same subset, or the Other subset.
+% SOKED retains both the original full-data training sets and matched-size versions obtained by random downsampling to the smallest feasible training set, so the full-data gap and the size-controlled gap can be compared.
+% For one target subset, SOKED proceeds as follows.
 \begin{enumerate}
-    \item \textbf{Fix the evaluation target.} Choose the outer split and the target subset whose test performance will be evaluated.
-    \item \textbf{Train the full-size configurations.} Fit predictors using the Same and Other training configurations with all available training examples allowed by that split and target subset.
-    \item \textbf{Construct matched-size configurations.} Compute the smallest feasible training size among the configurations being compared, and randomly downsample the larger training sets to that size.
-    \item \textbf{Compare full and matched gaps.} Evaluate the full-size and matched-size predictors on the same target-subset test fold, and compute the corresponding performance gaps.
-    \item \textbf{Interpret the difference.} If the full-data advantage largely disappears after matching, the evidence points to a sample-size effect; if a substantial matched-size gap persists, the evidence is consistent with a residual subset effect.
+    \item \textbf{Fix the test subset.} Choose the target subset whose test performance will be evaluated.
+    \item \textbf{Analyze full train size results.}
+    Compute prediction error for Same and Other models, using full train set sizes, and K-fold CV.
+    Use Table~\ref{tab:scenario-interpretation} to interpret the p-value for test error differences between Same and Other.
+    If the model trained on the larger subset is more accurate (scenarios S or O), then proceed to step 3.
+    Otherwise, there must be a subset effect (some distributional difference between subsets).
+    \item \textbf{Analyze matched size results.}
+    Compute prediction error for Same and Other models, after downsampling the larger of the two training sets to the smaller size.
+    A significant p-value for difference between Same/Other test error rates is evidence for a subset effect.
+    Otherwise, a p-value that is no longer significant after matching is evidence of a sample size effect (subsets are consistent for learning and prediction).
 \end{enumerate}
+Figure~\ref{fig:SOKED-concept} summarizes the SOKED step 3, for one outer cross-validation split and one target subset.
 
-The same workflow is repeated across outer folds and, when used, across random downsampling seeds.
-The full-data comparison identifies which training source yields better performance when all available data are used, whereas the matched-size comparison asks whether that advantage remains after training sizes are equalized.
+% The full-data comparison identifies which training source yields better performance when all available data are used, whereas the matched-size comparison asks whether that advantage remains after training sizes are equalized.
 
 \subsection{Operational decomposition of performance gaps}
 Fix a target subset $t$, and consider two training configurations $a,b \in \mathcal C$, where typically
@@ -150,17 +162,17 @@ L_t(\hat h_{a,n_0}) - L_t(\hat h_{b,n_0}).
 \label{eq:gaps}
 \end{equation}
 
-\paragraph{Why match at the minimum size.}
-We set $n_0 = \min(n_a, n_b)$ rather than an intermediate target such as the harmonic or geometric mean.
-This choice is the most conservative test of a subset effect: if configuration $a$ outperforms $b$ when $a$ is trained on the same size training set as configuration $b$ (the point at which $a$ is most disadvantaged relative to its full training set), the evidence for a genuine quality advantage of $a$ is as strong as possible.
-Any larger matched size would reduce $\delta_s$ and make it easier for the size-advantaged configuration to maintain its lead, weakening the test.
-The minimum is also uniquely defined and requires no tuning, avoiding the additional degree of freedom introduced by alternative target sizes.
-The minimum also directly answers the relevant counterfactual: \emph{would the larger-subset configuration still win if it only had as much data as its competitor?} If not, the observed advantage is fully explained by sample size.
-
+% \paragraph{Why match at the minimum size.}
+% We set $n_0 = \min(n_a, n_b)$ rather than an intermediate target such as the harmonic or geometric mean.
+% This choice is the most conservative test of a subset effect: if configuration $a$ outperforms $b$ when $a$ is trained on the same size training set as configuration $b$ (the point at which $a$ is most disadvantaged relative to its full training set), the evidence for a genuine quality advantage of $a$ is as strong as possible.
+% Any larger matched size would reduce $\delta_s$ and make it easier for the size-advantaged configuration to maintain its lead, weakening the test.
+% The minimum is also uniquely defined and requires no tuning, avoiding the additional degree of freedom introduced by alternative target sizes.
+\textbf{Why match at the minimum size?}
+SOKED answers the question: \emph{would the larger-subset configuration still win if it only had as much data as its competitor?}
+If not, the observed advantage is fully explained by sample size.
 This is an operational decomposition: the matched-size gap is interpreted as the residual subset component after controlling for training size, and the difference between the full-data and matched-size gaps is attributed to unequal training size.
 The subset component should be interpreted broadly as the residual performance difference at matched training size.
 This residual may reflect source-target alignment, label noise, support coverage, class balance, or other factors affecting the usefulness of samples for the target task.
-
 The following result gives a formal condition under which the subset component is zero, providing an anchor for the decomposition.
 
 \begin{lemma}[Exchangeability implies zero matched-size gap]
@@ -184,11 +196,11 @@ We then apply a paired $t$-test to $\{\bar\Delta_1^{\mathrm{match}},\ldots,\bar\
 Rejecting $H_0$ is evidence of a subset effect that the sample-size component alone cannot explain.
 This procedure is implemented in \texttt{mlr3resampling::pvalue\_downsample()}.
 
-We interpret these $p$-values as diagnostic summaries of the fold-level Same--Other gaps rather than as exact inferential guarantees.
-The main evidence for SOKED conclusions comes from the direction, magnitude, and persistence of the matched-size gaps.
-This use matches the diagnostic goal of SOKED: the $p$-values summarize whether matched-size gaps are consistently different from zero across folds.
-For the traffic data (Phoenix and Baltimore test subsets, \texttt{rpart} learner), the matched-size Same--Other gaps remain large and highly significant for both target cities ($p < 0.001$), providing strong evidence of a residual geographic subset effect after controlling for training-set size.
-Results across all datasets are summarized in Table~\ref{tab:results-summary}.
+% We interpret these $p$-values as diagnostic summaries of the fold-level Same--Other gaps rather than as exact inferential guarantees.
+% The main evidence for SOKED conclusions comes from the direction, magnitude, and persistence of the matched-size gaps.
+% This use matches the diagnostic goal of SOKED: the $p$-values summarize whether matched-size gaps are consistently different from zero across folds.
+% For the traffic data (Phoenix and Baltimore test subsets, \texttt{rpart} learner), the matched-size Same--Other gaps remain large and highly significant for both target cities ($p < 0.001$), providing strong evidence of a residual geographic subset effect after controlling for training-set size.
+% Results across all datasets are summarized in Table~\ref{tab:results-summary}.
 
 \begin{table*}[t]
 \centering
@@ -222,7 +234,11 @@ When the smaller source already performs better, that is immediate evidence of a
 
 We evaluate SOKED on two simulated and six real datasets that span regression and classification, low and high-dimensional features, and natural subset structures defined by geography, time, treatment, demography, and benchmark splits.
 Table~\ref{tab:dataset-summary} summarizes their key properties.
-All experiments use 10-fold cross-validation unless noted otherwise and report classification error rate or RMSE (lower is better).
+All experiments use 10-fold cross-validation and report classification error rate or RMSE (lower is better).
+
+\textbf{Proposed benchmark file format.}
+We publish each data set as a CSV file rows for data observations and named columns ordered as follows: first column named \texttt{fold} contains a randomly assigned integer fold ID, second column named \texttt{subset} contains a string describing the subset, third column named \texttt{y} contains output to predict, and other columns are inputs for prediction.
+
 
 \textbf{Simulated datasets.}
 The simulations were chosen to illustrate cases in which there is clearly either a sample size effect (\texttt{iid\_easy}), or a subset effect (\texttt{different}), using the rpart learner.
@@ -232,8 +248,7 @@ In \texttt{different}, the large subset (N=400) has less noise ($\sigma=0.1$) th
 % Both are used to assess seed robustness with 100 independent downsampling seeds and to verify that SOKED recovers the expected distinction between true subset differences and pure size imbalance.
 
 \textbf{Traffic (regression).}
-% The traffic dataset contains road-segment observations from Phoenix and Baltimore, which serve as the two SOKED subsets.
-The traffic dataset contains gapfilled \citep{FHWA2016HPMSShapefile} road-segment observations from Phoenix and Baltimore originating from the Highway Performance Monitoring System \citep{Gurney2025Vulcan}, which serve as the two SOAKED subsets.
+The traffic dataset contains gapfilled \citep{Gurney2025Vulcan} road-segment observations from Phoenix and Baltimore originating from the Highway Performance Monitoring System \citep{FHWA2016HPMSShapefile}, which serve as the two SOAKED subsets.
 Each row represents one road segment, the prediction target is log-transformed Average Annual Daily Traffic (AADT) \citep{bilal_hpms_aadt}, and the feature set combines night-time lights \citep{bilal_ntl_viirs}, population \citep{bilal_worldpop}, road density \citep{bilal_osm_roads}, and Sentinel-2 \citep{bilal_sentinel2} satellite bands (7 features, 128,792 rows).
 The Sentinel-2 bands are RGB and NIR (red, green, blue, and near-infrared).
 This setting asks whether training on data from the same city is more predictive than training on the other city or on both cities pooled together.
@@ -333,7 +348,7 @@ The robustness of these conclusions across 100 seeds supports the practical use 
 \begin{figure}
     \centering
     \includegraphics[width=0.8\textwidth]{fig3-simulations.png}
-    \caption{Robustness of SOKED over 100 downsampling seeds in simulations (\texttt{different} and \texttt{iid\_easy}), using the rpart learner. Blue shows the full-data Same--Other p-value; boxes show matched-size p-values across seeds.}
+    \caption{Robustness of proposed SOKED evaluation framework, over 100 downsampling seeds in simulations (\texttt{different} and \texttt{iid\_easy}), using the rpart learner. Blue shows the full-data Same--Other p-value; boxes show matched-size p-values across seeds.}
     \label{fig:sim-combined}
 \end{figure}
 
@@ -355,9 +370,9 @@ With matched train size ($N=14{,}702$), Same improves over Other for every learn
 Among the non-featureless learners, \texttt{rpart} and \texttt{glmnet} both remain well below the featureless baseline in the matched-size condition, while the torch MLP gives the lowest RMSE.
 With the full Phoenix-size Same training set ($N=88{,}331$), the strongest RMSE among the plotted learners comes from the torch MLP (0.928), followed by \texttt{glmnet} (0.980) and \texttt{rpart} (0.982).
 
-Panel B shows that these predictive gains come with large differences in computational cost.
-Featureless, \texttt{rpart}, and \texttt{glmnet} train in approximately 0.002, 0.12, and 0.44 seconds per run, respectively, whereas the tuned torch MLP requires about 32.2 seconds.
-Because the main SOKED diagnosis is stable across these learner families, we use \texttt{rpart} in the remaining experiments as a simple nonlinear default that is much cheaper than the neural network, substantially cheaper than \texttt{glmnet}, and still captures the same subset-dependent structure.
+% Panel B shows that these predictive gains come with large differences in computational cost.
+% Featureless, \texttt{rpart}, and \texttt{glmnet} train in approximately 0.002, 0.12, and 0.44 seconds per run, respectively, whereas the tuned torch MLP requires about 32.2 seconds.
+% Because the main SOKED diagnosis is stable across these learner families, we use \texttt{rpart} in the remaining experiments as a simple nonlinear default that is much cheaper than the neural network, substantially cheaper than \texttt{glmnet}, and still captures the same subset-dependent structure.
 
 For qSIP, Figure~\ref{fig:regr-pairs} (middle column) shows SOKED results for the \texttt{qme.15} test subset.
 At full training sizes, Same ($N=4{,}131$, RMSE $=0.0377$) outperforms Other ($N=2{,}808$, RMSE $=0.0564$), so the naive comparison could be attributed to Same having more training examples.
@@ -404,7 +419,7 @@ Taken together, Waveform behaves primarily as a sample-size example, and in the 
     \centering
     \includegraphics[width=\textwidth]{fig4-classif-pairs.png}
     \caption{
-    SOKED results for three classification datasets (cv.glmnet learner, 10-fold CV), comparing Same and Other at full and matched training sizes by target subset.
+    SOKED results for three classification datasets (glmnet learner, 10-fold CV), comparing Same and Other at full and matched training sizes by target subset.
     Each column corresponds to one dataset--test-subset pair.}
     \label{fig:classif-pairs}
 \end{figure}
@@ -416,7 +431,7 @@ The matched column is reported relative to the Larger column: \emph{larger} mean
 Of the 16 dataset/test-subset rows, 8 yield a residual subset effect that survives downsampling and 8 collapse to a sample-size effect, illustrating that both regimes occur in practice rather than one dominating.
 The O and S rows are the ones SOKED actively resolves: they are exactly the cases where the larger source could be winning either because it is larger or because it is genuinely more predictive.
 The D rows are already informative before downsampling because the smaller source wins outright, so matched-size downsampling is not needed for interpretation; those rows are therefore marked n/a in the matched column.
-The workers' comp / Female row remains especially consequential: the naive full-data comparison favors Other, but the matched-size comparison collapses to near-equality. This is the ordering reversal characterized by Proposition~\ref{prop:reversal}.
+% The workers' comp / Female row remains especially consequential: the naive full-data comparison favors Other, but the matched-size comparison collapses to near-equality. This is the ordering reversal characterized by Proposition~\ref{prop:reversal}.
 
 \begin{table}
     \centering
@@ -438,12 +453,12 @@ workers' comp & Female & rpart & other & other & O & equal & sample size \\
 traffic & Phoenix & rpart & same & same & S & larger & subset \\
 traffic & Baltimore & rpart & same & other & D & n/a & subset \\
 \midrule
-NSCH\_autism & 2019 & cv.glmnet & other & other & O & equal & sample size \\
-NSCH\_autism & 2020 & cv.glmnet & same & same & S & larger & subset \\
-STL-10 & test & cv.glmnet & same & same & S & equal & sample size \\
-STL-10 & train & cv.glmnet & other & other & O & equal & sample size \\
-Waveform & test & cv.glmnet & same & same & S & equal & sample size \\
-Waveform & train & cv.glmnet & other & other & O & equal & sample size \\
+NSCH\_autism & 2019 & glmnet & other & other & O & equal & sample size \\
+NSCH\_autism & 2020 & glmnet & same & same & S & larger & subset \\
+STL-10 & test & glmnet & same & same & S & equal & sample size \\
+STL-10 & train & glmnet & other & other & O & equal & sample size \\
+Waveform & test & glmnet & same & same & S & equal & sample size \\
+Waveform & train & glmnet & other & other & O & equal & sample size \\
 \bottomrule
 \end{tabular}}
     \caption{SOKED results across all datasets.
@@ -463,9 +478,9 @@ Other rows, including traffic, qSIP, workers' compensation Male, and NSCH autism
 For the workers' compensation Female experiment, the naive full-data comparison favors Other, while SOKED reveals that this apparent advantage shrinks to a non-significant difference once sizes are equalized.
 
 The seed-robustness experiment on simulated data confirms that the SOKED conclusion is stable across 100 random downsampling seeds, supporting practical use of a single seed when compute is limited.
-The learner-robustness experiment on the traffic dataset confirms that the Same-beats-Other conclusion holds across featureless, rpart, glmnet, and deep neural network learners, at the cost of substantially increasing training time for more expressive models.
+The learner-robustness experiment on the traffic dataset confirms that the Same-beats-Other conclusion holds across different models, at the cost of substantially increasing training time for more expressive models.
 
-SOKED is implemented in the \texttt{mlr3resampling} R package and integrates with the full \texttt{mlr3} benchmarking ecosystem, including grouped, blocked, and stratified resampling.
+SOKED is implemented in the \texttt{mlr3resampling} R package and integrates with the full \texttt{mlr3} benchmarking ecosystem.
 Future work includes extending the downsampling strategy to pooled training configurations to further isolate complementarity effects, and developing power analysis tools to guide the choice of number of folds and downsampling seeds.
 
 \paragraph{Limitations.}
