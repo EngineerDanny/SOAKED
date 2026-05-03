@@ -39,9 +39,9 @@ The code is written in R. The smoke test and standard `rpart` workflows need the
 ```r
 install.packages(c(
   "data.table", "mlr3", "mlr3learners", "rpart", "ggplot2",
-  "batchtools", "mlr3batchmark", "patchwork", "scales", "remotes"
+  "batchtools", "mlr3batchmark", "patchwork", "scales",
+  "mlr3resampling"
 ))
-remotes::install_github("tdhock/mlr3resampling")
 ```
 
 Optional learner-robustness scripts additionally use `mlr3extralearners`, `torch`, `ranger`, and `glmnet`.

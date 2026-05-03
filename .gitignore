@@ -30,6 +30,7 @@ TEX_RULES.md
 .RData
 AGENTS.md
 paper/SKILL.md
+paper/main_extended.tex
 .claude/*
 legacy/
 .codex
@@ -37,3 +38,4 @@ legacy/
 *.ppm
 *.zip
 dist/soaked-dataverse-croissant.json
+dist/soaked-dataverse-croissant-anonymous.json
