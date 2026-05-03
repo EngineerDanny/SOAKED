@@ -24,3 +24,5 @@ legacy/
 .codex
 /experiments/*_registry/
 *.ppm
+*.zip
+dist/soaked-dataverse-croissant.json
