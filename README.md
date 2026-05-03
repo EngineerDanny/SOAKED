@@ -67,14 +67,7 @@ Important scripts:
 
 ## Running A Small Hosted-Data Example
 
-The benchmark CSVs are not assumed to be present in a clean code clone. Download the dataset archive from the submission's Dataverse link and unpack it at the repository root so that paths like this exist:
-
-```text
-data/processed/simulation/iid_easy.csv
-data/processed/classification/waveform.csv
-```
-
-Then run the smallest processed-data example:
+The two small simulation datasets are included in this repository, so reviewers can run a processed-data example without downloading the full Dataverse archive:
 
 ```bash
 Rscript experiments/soaked_regr.R --dataset=iid_easy
@@ -88,7 +81,14 @@ results/iid_easy_rpart_runs.csv
 results/iid_easy_rpart_pvalue_downsample.png
 ```
 
-A small classification example is:
+The full benchmark CSVs are hosted separately. Download the dataset archive from the submission's Dataverse link and unpack it at the repository root so that paths like this exist:
+
+```text
+data/processed/simulation/iid_easy.csv
+data/processed/classification/waveform.csv
+```
+
+After unpacking the archive, a small classification example is:
 
 ```bash
 Rscript experiments/soaked_classif.R --dataset=waveform --learner=rpart
@@ -100,6 +100,20 @@ Expected outputs:
 ```text
 results/waveform_rpart_runs.csv
 results/waveform_rpart_pvalue_downsample.png
+```
+
+The second included simulation dataset can be run similarly:
+
+```bash
+Rscript experiments/soaked_regr.R --dataset=different
+Rscript figures/plot_soaked.R --dataset=different
+```
+
+Expected outputs:
+
+```text
+results/different_rpart_runs.csv
+results/different_rpart_pvalue_downsample.png
 ```
 
 ## Full Benchmark Workflow
@@ -141,7 +155,16 @@ Rscript experiments/soaked_collect.R --dataset=<dataset> --learner=<learner>
 
 ## Processed Dataset Summary
 
-After unpacking the hosted dataset archive, the expected processed benchmark files are:
+The repository includes the small simulation files:
+
+```text
+data/raw/simulation/different.csv
+data/raw/simulation/iid_easy.csv
+data/processed/simulation/different.csv
+data/processed/simulation/iid_easy.csv
+```
+
+After unpacking the hosted dataset archive, the remaining expected processed benchmark files are:
 
 ```text
 data/processed/classification/NSCH_autism.csv
@@ -150,8 +173,6 @@ data/processed/classification/waveform.csv
 data/processed/regression/qsip_dim.control_vs_qme.15.csv
 data/processed/regression/traffic.csv
 data/processed/regression/workers_compensation.csv
-data/processed/simulation/different.csv
-data/processed/simulation/iid_easy.csv
 ```
 
 `data/dataset_summary.csv` lists the benchmark files and basic sizes.

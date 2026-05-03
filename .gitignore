@@ -14,6 +14,17 @@
 # Downloaded template bundle
 Formatting_Instructions_For_NeurIPS_2026.zip
 *data
+!data/
+data/*
+!data/dataset_summary.csv
+!data/raw/
+data/raw/*
+!data/raw/simulation/
+!data/raw/simulation/*.csv
+!data/processed/
+data/processed/*
+!data/processed/simulation/
+!data/processed/simulation/*.csv
 TEX_RULES.md
 .Rhistory
 .RData
