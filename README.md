@@ -1,134 +1,175 @@
 # SOAKED
 
-This repository contains the SOAKED NeurIPS E&D paper, the experiment scripts used to generate results, and the plotting scripts used to render final figures.
+This repository contains the SOAKED NeurIPS E&D paper source, experiment runners, and plotting scripts used to analyze same/other cross-validation with downsampling.
 
-## Layout
+## Reviewer Quick Start
 
-- `paper/`: NeurIPS manuscript source, bibliography, template files, TeX rules, and stable paper figures.
-- `R/`: reusable R helpers for SOAKED workflows. This is currently a placeholder for shared code.
+The fastest check does not require downloading the hosted benchmark datasets. It runs a small synthetic SOAKED-style experiment and writes a CSV summary.
+
+```bash
+# From the repository root
+mkdir -p results/simulation
+Rscript experiments/generate_figures.R \
+  --n-data=80 \
+  --n-splits=4 \
+  --n-random-seeds=2 \
+  --train-sizes=20,40 \
+  --cases=same_distribution \
+  --output-csv=results/simulation/reviewer_smoke_test.csv
+```
+
+Expected output:
+
+```text
+Running case: Sample Size Effect
+```
+
+The command should create:
+
+```text
+results/simulation/reviewer_smoke_test.csv
+```
+
+This smoke test exercises the custom `mlr3resampling::ResamplingSameOtherSizesCV` resampling logic, the same/other train/test construction, model fitting with `rpart`, and result aggregation. It is intentionally small; it is not intended to reproduce the full paper figures.
+
+## Setup
+
+The code is written in R. The smoke test and standard `rpart` workflows need these packages:
+
+```r
+install.packages(c(
+  "data.table", "mlr3", "mlr3learners", "rpart", "ggplot2",
+  "batchtools", "mlr3batchmark", "patchwork", "scales", "remotes"
+))
+remotes::install_github("tdhock/mlr3resampling")
+```
+
+Optional learner-robustness scripts additionally use `mlr3extralearners`, `torch`, `ranger`, and `glmnet`.
+
+## Repository Layout
+
+- `paper/`: NeurIPS manuscript source, bibliography, template files, and paper figures.
 - `experiments/`: experiment runners.
-- `experiments/generate_figures.R`: current simulation runner for the combined simulation-panel figure.
-- `experiments/learner_robustness_real_data.R`: learner-robustness experiment on the local `traffic_aadt` real dataset, with timing output.
-- `figures/`: plotting scripts that read saved results and render final figures.
+- `figures/`: plotting scripts that read saved results and render figures.
 - `results/`: generated CSV summaries and rendered outputs.
-- `data/`: local data assets used by experiments.
+- `data/`: benchmark data location after downloading and unpacking the hosted dataset archive.
+- `dist/`: local distribution metadata, including Croissant JSON files.
 
-## Current Files
+Important scripts:
 
-- Paper source: `paper/main.tex`
-- Paper figures: `paper/figures/`
-- Simulation runner: `experiments/generate_figures.R`
-- Learner robustness runner: `experiments/learner_robustness_real_data.R`
-- Simulation plotter: `figures/plot_simulation_panels.R`
-- Simulation outputs:
-  - `results/simulation_panel_data.csv`
-  - `results/combined_simulation_panels.png`
+- `experiments/generate_figures.R`: synthetic simulation runner used for the reviewer smoke test.
+- `experiments/soaked_classif.R`: classification benchmark runner.
+- `experiments/soaked_regr.R`: regression and simulation benchmark runner.
+- `experiments/soaked_collect.R`: collector for SLURM/batchtools registry runs.
+- `figures/plot_soaked.R`: renders a SOAKED p-value/downsampling plot from a `results/*_runs.csv` file.
+- `figures/plot_soaked_pairs.R`: renders paired classification summary plots from saved run files.
+- `figures/plot_soaked_pairs_regr.R`: renders paired regression summary plots from saved run files.
 
-## Requirements
+## Running A Small Hosted-Data Example
 
-The current experiment and plotting workflow uses R packages including:
+The benchmark CSVs are not assumed to be present in a clean code clone. Download the dataset archive from the submission's Dataverse link and unpack it at the repository root so that paths like this exist:
 
-- `data.table`
-- `mlr3`
-- `mlr3verse`
-- `mlr3learners`
-- `mlr3extralearners`
-- `mlr3resampling`
-- `rpart`
-- `ggplot2`
-- `patchwork`
-
-## Simulation Workflow
-
-Generate the simulation summaries:
-
-```bash
-Rscript experiments/generate_figures.R
+```text
+data/processed/simulation/iid_easy.csv
+data/processed/classification/waveform.csv
 ```
 
-Render the combined simulation figure:
+Then run the smallest processed-data example:
 
 ```bash
-Rscript figures/plot_simulation_panels.R
+Rscript experiments/soaked_regr.R --dataset=iid_easy
+Rscript figures/plot_soaked.R --dataset=iid_easy
 ```
 
-By default, these scripts write:
+Expected outputs:
 
-- `results/simulation_panel_data.csv`
-- `results/combined_simulation_panels.png`
+```text
+results/iid_easy_rpart_runs.csv
+results/iid_easy_rpart_pvalue_downsample.png
+```
 
-The plotting script also refreshes the paper copy of the simulation figure:
+A small classification example is:
 
-- `paper/figures/combined_simulation_panels.png`
+```bash
+Rscript experiments/soaked_classif.R --dataset=waveform --learner=rpart
+Rscript figures/plot_soaked.R --dataset=waveform
+```
+
+Expected outputs:
+
+```text
+results/waveform_rpart_runs.csv
+results/waveform_rpart_pvalue_downsample.png
+```
+
+## Full Benchmark Workflow
+
+The full benchmark suite uses the processed data files under `data/processed/`. Some datasets are large, especially `STL10.csv`, so reviewers may prefer the smoke test or `iid_easy` first.
+
+Run local sequential `rpart` experiments:
+
+```bash
+Rscript experiments/soaked_classif.R --dataset=nsch_autism --learner=rpart
+Rscript experiments/soaked_classif.R --dataset=stl10 --learner=rpart
+Rscript experiments/soaked_classif.R --dataset=waveform --learner=rpart
+
+Rscript experiments/soaked_regr.R --dataset=traffic
+Rscript experiments/soaked_regr.R --dataset=qsip_dim.control_vs_qme.15
+Rscript experiments/soaked_regr.R --dataset=workers_compensation
+Rscript experiments/soaked_regr.R --dataset=different
+Rscript experiments/soaked_regr.R --dataset=iid_easy
+```
+
+Render per-dataset SOAKED plots:
+
+```bash
+Rscript figures/plot_soaked.R --dataset=nsch_autism
+Rscript figures/plot_soaked.R --dataset=stl10
+Rscript figures/plot_soaked.R --dataset=waveform
+Rscript figures/plot_soaked.R --dataset=traffic
+Rscript figures/plot_soaked.R --dataset=qsip_dim.control_vs_qme.15
+Rscript figures/plot_soaked.R --dataset=workers_compensation
+Rscript figures/plot_soaked.R --dataset=different
+Rscript figures/plot_soaked.R --dataset=iid_easy
+```
+
+For SLURM environments, set `SOAKED_USE_SLURM=1` when launching an experiment. This creates a `batchtools` registry under `experiments/<dataset>_<learner>_registry`; after jobs finish, collect results with:
+
+```bash
+Rscript experiments/soaked_collect.R --dataset=<dataset> --learner=<learner>
+```
+
+## Processed Dataset Summary
+
+After unpacking the hosted dataset archive, the expected processed benchmark files are:
+
+```text
+data/processed/classification/NSCH_autism.csv
+data/processed/classification/STL10.csv
+data/processed/classification/waveform.csv
+data/processed/regression/qsip_dim.control_vs_qme.15.csv
+data/processed/regression/traffic.csv
+data/processed/regression/workers_compensation.csv
+data/processed/simulation/different.csv
+data/processed/simulation/iid_easy.csv
+```
+
+`data/dataset_summary.csv` lists the benchmark files and basic sizes.
 
 ## Build The Paper
+
+The paper figures used by the submitted manuscript are included under `paper/figures/`.
 
 ```bash
 cd paper
 latexmk -pdf -interaction=nonstopmode main.tex
 ```
 
-The paper build expects the figure assets under `paper/figures/` and uses the local NeurIPS template files in `paper/`.
+The paper build uses local NeurIPS template files in `paper/`. The repository `.gitignore` excludes generated LaTeX build artifacts and PDFs.
 
-## Standard SOAKED Workflow
+## Notes On Reproducibility
 
-Prepare qSIP raw data:
-
-```bash
-/projects/genomic-ml/da2343/soak-r/bin/Rscript /projects/genomic-ml/da2343/SOAKED/data/prepare_qsip_data.R
-```
-
-Prepare processed datasets:
-
-```bash
-/projects/genomic-ml/da2343/soak-r/bin/Rscript /projects/genomic-ml/da2343/SOAKED/data/prepare_data.R
-```
-
-Submit jobs one by one:
-
-```bash
-SOAKED_USE_SLURM=1 /projects/genomic-ml/da2343/soak-r/bin/Rscript /projects/genomic-ml/da2343/SOAKED/experiments/soaked_classif.R --dataset=nsch_autism
-SOAKED_USE_SLURM=1 /projects/genomic-ml/da2343/soak-r/bin/Rscript /projects/genomic-ml/da2343/SOAKED/experiments/soaked_classif.R --dataset=stl10
-SOAKED_USE_SLURM=1 /projects/genomic-ml/da2343/soak-r/bin/Rscript /projects/genomic-ml/da2343/SOAKED/experiments/soaked_classif.R --dataset=waveform
-
-SOAKED_USE_SLURM=1 /projects/genomic-ml/da2343/soak-r/bin/Rscript /projects/genomic-ml/da2343/SOAKED/experiments/soaked_regr.R --dataset=traffic
-SOAKED_USE_SLURM=1 /projects/genomic-ml/da2343/soak-r/bin/Rscript /projects/genomic-ml/da2343/SOAKED/experiments/soaked_regr.R --dataset=qsip_dim.control_vs_qme.15
-SOAKED_USE_SLURM=1 /projects/genomic-ml/da2343/soak-r/bin/Rscript /projects/genomic-ml/da2343/SOAKED/experiments/soaked_regr.R --dataset=workers_compensation
-
-SOAKED_USE_SLURM=1 /projects/genomic-ml/da2343/soak-r/bin/Rscript /projects/genomic-ml/da2343/SOAKED/experiments/soaked_regr.R --dataset=different
-SOAKED_USE_SLURM=1 /projects/genomic-ml/da2343/soak-r/bin/Rscript /projects/genomic-ml/da2343/SOAKED/experiments/soaked_regr.R --dataset=iid_easy
-```
-
-Collect results:
-
-```bash
-/projects/genomic-ml/da2343/soak-r/bin/Rscript /projects/genomic-ml/da2343/SOAKED/experiments/soaked_collect.R --dataset=nsch_autism
-/projects/genomic-ml/da2343/soak-r/bin/Rscript /projects/genomic-ml/da2343/SOAKED/experiments/soaked_collect.R --dataset=stl10
-/projects/genomic-ml/da2343/soak-r/bin/Rscript /projects/genomic-ml/da2343/SOAKED/experiments/soaked_collect.R --dataset=waveform
-
-/projects/genomic-ml/da2343/soak-r/bin/Rscript /projects/genomic-ml/da2343/SOAKED/experiments/soaked_collect.R --dataset=traffic
-/projects/genomic-ml/da2343/soak-r/bin/Rscript /projects/genomic-ml/da2343/SOAKED/experiments/soaked_collect.R --dataset=qsip_dim.control_vs_qme.15
-/projects/genomic-ml/da2343/soak-r/bin/Rscript /projects/genomic-ml/da2343/SOAKED/experiments/soaked_collect.R --dataset=workers_compensation
-
-/projects/genomic-ml/da2343/soak-r/bin/Rscript /projects/genomic-ml/da2343/SOAKED/experiments/soaked_collect.R --dataset=different
-/projects/genomic-ml/da2343/soak-r/bin/Rscript /projects/genomic-ml/da2343/SOAKED/experiments/soaked_collect.R --dataset=iid_easy
-```
-
-Render plots:
-
-```bash
-/projects/genomic-ml/da2343/soak-r/bin/Rscript /projects/genomic-ml/da2343/SOAKED/figures/plot_soaked.R --dataset=nsch_autism
-/projects/genomic-ml/da2343/soak-r/bin/Rscript /projects/genomic-ml/da2343/SOAKED/figures/plot_soaked.R --dataset=stl10
-/projects/genomic-ml/da2343/soak-r/bin/Rscript /projects/genomic-ml/da2343/SOAKED/figures/plot_soaked.R --dataset=waveform
-/projects/genomic-ml/da2343/soak-r/bin/Rscript /projects/genomic-ml/da2343/SOAKED/figures/plot_soaked.R --dataset=traffic
-/projects/genomic-ml/da2343/soak-r/bin/Rscript /projects/genomic-ml/da2343/SOAKED/figures/plot_soaked.R --dataset=qsip_dim.control_vs_qme.15
-/projects/genomic-ml/da2343/soak-r/bin/Rscript /projects/genomic-ml/da2343/SOAKED/figures/plot_soaked.R --dataset=workers_compensation
-/projects/genomic-ml/da2343/soak-r/bin/Rscript /projects/genomic-ml/da2343/SOAKED/figures/plot_soaked.R --dataset=different
-/projects/genomic-ml/da2343/soak-r/bin/Rscript /projects/genomic-ml/da2343/SOAKED/figures/plot_soaked.R --dataset=iid_easy
-```
-
-Current standard SOAKED outputs use the `rpart` tag:
-
-- registries: `experiments/<dataset>_rpart_registry`
-- run files: `results/<dataset>_rpart_runs.csv`
-- plots: `results/<dataset>_rpart_pvalue_downsample.png`
+- The quick-start smoke test is synthetic and should finish quickly on a laptop.
+- The full processed-data experiments reproduce the code path used for the paper but vary in runtime by dataset size.
+- `SOAKED_USE_SLURM=1` is optional and only needed for cluster execution.
+- Existing files in `results/` are saved outputs from prior runs; rerunning scripts will overwrite the corresponding output files for the selected dataset and learner.
