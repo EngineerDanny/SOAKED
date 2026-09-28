@@ -39,3 +39,7 @@ legacy/
 *.zip
 dist/soaked-dataverse-croissant.json
 dist/soaked-dataverse-croissant-anonymous.json
+/dist/
+/tmp/
+/LOCAL_PROVENANCE.md
+/paper/figures/figure-SOAKED-seeds-dots.png
