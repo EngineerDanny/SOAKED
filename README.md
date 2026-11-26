@@ -1,6 +1,6 @@
 # SOAKED
 
-This repository contains the SOAKED NeurIPS E&D paper source, experiment runners, and plotting scripts used to analyze same/other cross-validation with downsampling.
+This repository contains the SOKED experiment runners and plotting scripts used to analyze same/other cross-validation with downsampling.
 
 ## Reviewer Quick Start
 
@@ -67,7 +67,7 @@ Important scripts:
 
 ## Running A Small Hosted-Data Example
 
-The two small simulation datasets are included in this repository, so reviewers can run a processed-data example without downloading the full Dataverse archive:
+The two small simulation datasets are included in this repository, so reviewers can run a processed-data example without downloading the full benchmark archive:
 
 ```bash
 Rscript experiments/soaked_regr.R --dataset=iid_easy
@@ -81,7 +81,7 @@ results/iid_easy_rpart_runs.csv
 results/iid_easy_rpart_pvalue_downsample.png
 ```
 
-The full benchmark CSVs are hosted separately. Download the dataset archive from the submission's Dataverse link and unpack it at the repository root so that paths like this exist:
+The full benchmark archive is publicly available from [Harvard Dataverse](https://doi.org/10.7910/DVN/YJEMF3), version 1.0, under CC0 1.0. Download `soaked-benchmark-datasets.zip` and unpack it at the repository root so that paths like this exist:
 
 ```text
 data/processed/simulation/iid_easy.csv

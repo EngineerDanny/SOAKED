@@ -84,7 +84,7 @@ custom_height <- if (length(height_arg) > 0L) {
 custom_ylab <- if (length(ylab_arg) > 0L) {
   sub("^--ylab=", "", ylab_arg[[1L]])
 } else {
-  "Train subsets"
+  "Train domains"
 }
 anno_size <- if (length(anno_size_arg) > 0L) {
   as.numeric(sub("^--anno-size=", "", anno_size_arg[[1L]]))
@@ -135,7 +135,7 @@ pair_specs <- lapply(pair_args, function(x) {
     dataset = dataset_name,
     test_subset = subset_name,
     pair_label = sprintf(
-      "dataset: %s\ntest_subset: %s",
+      "dataset: %s\nTest domain: %s",
       dataset_configs[[dataset_name]]$display_name,
       subset_name
     )

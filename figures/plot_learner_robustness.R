@@ -50,12 +50,12 @@ raw_dt[, train_subsets := factor(train_subsets, levels = c("same", "other"))]
 plot_dt[, test_subset := factor(
   test_subset,
   levels = c("Baltimore", "Phoenix"),
-  labels = c("Test subset: Baltimore", "Test subset: Phoenix")
+  labels = c("Test domain: Baltimore", "Test domain: Phoenix")
 )]
 raw_dt[, test_subset := factor(
   test_subset,
   levels = c("Baltimore", "Phoenix"),
-  labels = c("Test subset: Baltimore", "Test subset: Phoenix")
+  labels = c("Test domain: Baltimore", "Test domain: Phoenix")
 )]
 plot_dt[, sample_size := factor(
   sample_size,
@@ -74,7 +74,7 @@ plot_dt[, text_hjust := ifelse(
 panel_dt[, test_subset := factor(
   test_subset,
   levels = c("Baltimore", "Phoenix"),
-  labels = c("Test subset: Baltimore", "Test subset: Phoenix")
+  labels = c("Test domain: Baltimore", "Test domain: Phoenix")
 )]
 panel_dt[, sample_size := factor(
   sample_size,
